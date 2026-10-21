@@ -5,6 +5,7 @@ import { PAYS } from '@/data/pays';
 import { LANGUES, useLangue } from '@/lib/langue';
 import { usePays } from '@/lib/pays';
 import { c, space } from '@/lib/theme';
+import { t } from '@/i18n';
 
 function LigneNumero({ nom, numero }: { nom: string; numero: string }) {
   return (
@@ -37,9 +38,9 @@ export default function PaysEcran() {
           </Pressable>
         ))}
       </View>
-      <Texte muted>Le pays choisi adapte les numéros dans toutes les fiches et dans les réponses de l’IA.</Texte>
+      <Texte muted>{t('Le pays choisi adapte les numéros dans toutes les fiches et dans les réponses de l’IA.')}</Texte>
 
-      <Sous>Langue de l’IA et de la voix</Sous>
+      <Sous>{t('Langue de l’IA et de la voix')}</Sous>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
         {LANGUES.map((l) => (
           <Pressable
@@ -52,43 +53,43 @@ export default function PaysEcran() {
           </Pressable>
         ))}
       </View>
-      <Texte muted>L’IA te répond et t’écoute dans cette langue. Les écrans et les fiches seront traduits dans une prochaine version.</Texte>
+      <Texte muted>{t('L’IA te répond et t’écoute dans cette langue.')}</Texte>
 
-      <Sous>Numéros d’urgence</Sous>
-      <LigneNumero nom="Urgence (toute l’Europe)" numero="112" />
-      {pays.ambulance !== '112' && <LigneNumero nom="Ambulance, urgence médicale" numero={pays.ambulance} />}
-      <LigneNumero nom="Police" numero={pays.police} />
-      {pays.pompiers !== '112' && <LigneNumero nom="Pompiers" numero={pays.pompiers} />}
-      <LigneNumero nom={`Intoxication : ${pays.antipoisonNom}`} numero={pays.antipoison} />
-      <LigneNumero nom={`Écoute, détresse : ${pays.aidePsyNom}`} numero={pays.aidePsy} />
+      <Sous>{t('Numéros d’urgence')}</Sous>
+      <LigneNumero nom={t('Urgence (toute l’Europe)')} numero="112" />
+      {pays.ambulance !== '112' && <LigneNumero nom={t('Ambulance, urgence médicale')} numero={pays.ambulance} />}
+      <LigneNumero nom={t('Police')} numero={pays.police} />
+      {pays.pompiers !== '112' && <LigneNumero nom={t('Pompiers')} numero={pays.pompiers} />}
+      <LigneNumero nom={t('Intoxication : {nom}', { nom: pays.antipoisonNom })} numero={pays.antipoison} />
+      <LigneNumero nom={t('Écoute, détresse : {nom}', { nom: pays.aidePsyNom })} numero={pays.aidePsy} />
       {pays.autres.map((a) => (
         <LigneNumero key={a.numero + a.nom} nom={a.nom} numero={a.numero} />
       ))}
       {pays.sms && (
         <Pressable style={s.ligne} onPress={() => Linking.openURL(`sms:${pays.sms}`)}>
           <Ionicons name="chatbubble" size={22} color={c.info} />
-          <Text style={[s.ligneTitre, { flex: 1 }]}>SMS d’urgence (si tu ne peux pas parler)</Text>
+          <Text style={[s.ligneTitre, { flex: 1 }]}>{t('SMS d’urgence (si tu ne peux pas parler)')}</Text>
           <Text style={{ color: c.accent, fontSize: 20, fontWeight: '800' }}>{pays.sms}</Text>
         </Pressable>
       )}
 
-      <Sous>Alertes et sirènes</Sous>
+      <Sous>{t('Alertes et sirènes')}</Sous>
       <Carte couleur={c.danger}>
-        <Texte>Application et alertes officielles : {pays.alerteApp}.</Texte>
+        <Texte>{t('Application et alertes officielles : {app}.', { app: pays.alerteApp })}</Texte>
         {pays.sirenes.map((t, i) => (
           <Texte key={i}>• {t}</Texte>
         ))}
       </Carte>
 
-      <Sous>Radios à écouter</Sous>
+      <Sous>{t('Radios à écouter')}</Sous>
       <Carte>
         <Texte>{pays.radios}</Texte>
-        <Texte muted>Garde une radio à piles ou à dynamo : elle marche même quand tout le reste est coupé.</Texte>
+        <Texte muted>{t('Garde une radio à piles ou à dynamo : elle marche même quand tout le reste est coupé.')}</Texte>
       </Carte>
 
       {pays.abris && (
         <>
-          <Sous>Abris</Sous>
+          <Sous>{t('Abris')}</Sous>
           <Carte>
             <Texte>{pays.abris}</Texte>
           </Carte>
@@ -96,20 +97,20 @@ export default function PaysEcran() {
       )}
       {pays.provisions && (
         <>
-          <Sous>Réserves conseillées</Sous>
+          <Sous>{t('Réserves conseillées')}</Sous>
           <Carte>
             <Texte>{pays.provisions}</Texte>
           </Carte>
         </>
       )}
 
-      <Sous>Aide alimentaire et sociale</Sous>
+      <Sous>{t('Aide alimentaire et sociale')}</Sous>
       <Carte>
         <Texte>{pays.orgsAide}</Texte>
       </Carte>
 
       {!pays.verifie && (
-        <Texte muted>Ces informations sont en cours de vérification par des personnes du pays. En cas de doute, le 112 fonctionne partout en Europe.</Texte>
+        <Texte muted>{t('Ces informations sont en cours de vérification par des personnes du pays. En cas de doute, le 112 fonctionne partout en Europe.')}</Texte>
       )}
     </Ecran>
   );

@@ -3,13 +3,16 @@ import { useState } from 'react';
 import { Bouton, Carte, Ecran, Ligne, Sous, Texte, Titre } from '@/components/ui';
 import { fiche } from '@/data/fiches';
 import { conseilsPour, LIEUX, PROBLEMES, type LieuId, type Probleme } from '@/data/guide';
+import { nomLieu, t, traduireFiche, traduireProbleme } from '@/i18n';
 import { localiser } from '@/lib/pays';
 import { c } from '@/lib/theme';
 
 export default function Guide() {
   // Ouvert depuis « Je panique » (ou un autre écran) avec un problème déjà choisi.
   const { probleme: depart } = useLocalSearchParams<{ probleme?: string }>();
-  const [probleme, setProbleme] = useState<Probleme | null>(PROBLEMES.find((p) => p.id === depart) ?? null);
+  const trouve = PROBLEMES.find((p) => p.id === depart);
+  // Le problème choisi est gardé déjà traduit : question de tri, options et conseils suivent la langue.
+  const [probleme, setProbleme] = useState<Probleme | null>(trouve ? traduireProbleme(trouve) : null);
   const [triFait, setTriFait] = useState(false);
   const [lieu, setLieu] = useState<LieuId | null>(null);
 
@@ -23,9 +26,9 @@ export default function Guide() {
   if (!probleme) {
     return (
       <Ecran>
-        <Titre>Quel est le problème ?</Titre>
+        <Titre>{t('Quel est le problème ?')}</Titre>
         {PROBLEMES.map((p) => (
-          <Ligne key={p.id} titre={p.label} icone={p.icone} couleur={p.couleur} onPress={() => setProbleme(p)} />
+          <Ligne key={p.id} titre={traduireProbleme(p).label} icone={p.icone} couleur={p.couleur} onPress={() => setProbleme(traduireProbleme(p))} />
         ))}
       </Ecran>
     );
@@ -45,7 +48,7 @@ export default function Guide() {
             onPress={() => (o.fiche ? router.replace(`/fiche/${o.fiche}`) : setTriFait(true))}
           />
         ))}
-        <Bouton label="Retour" discret onPress={recommencer} />
+        <Bouton label={t('Retour')} discret onPress={recommencer} />
       </Ecran>
     );
   }
@@ -54,11 +57,11 @@ export default function Guide() {
   if (!lieu) {
     return (
       <Ecran>
-        <Titre>Où es-tu en ce moment ?</Titre>
+        <Titre>{t('Où es-tu en ce moment ?')}</Titre>
         {LIEUX.map((l) => (
-          <Ligne key={l.id} titre={l.label} icone={l.icone} onPress={() => setLieu(l.id)} />
+          <Ligne key={l.id} titre={nomLieu(l.id, l.label)} icone={l.icone} onPress={() => setLieu(l.id)} />
         ))}
-        <Bouton label="Retour" discret onPress={recommencer} />
+        <Bouton label={t('Retour')} discret onPress={recommencer} />
       </Ecran>
     );
   }
@@ -68,33 +71,33 @@ export default function Guide() {
   return (
     <Ecran>
       <Titre>{probleme.label}</Titre>
-      <Texte muted>{LIEUX.find((l) => l.id === lieu)?.label}</Texte>
+      <Texte muted>{nomLieu(lieu, LIEUX.find((l) => l.id === lieu)?.label ?? '')}</Texte>
 
-      <Sous>Tout de suite</Sous>
+      <Sous>{t('Tout de suite')}</Sous>
       <Carte couleur={c.danger}>
-        {r.immediat.map((t, i) => (
-          <Texte key={i}>• {localiser(t)}</Texte>
+        {r.immediat.map((texte, i) => (
+          <Texte key={i}>• {localiser(texte)}</Texte>
         ))}
       </Carte>
 
       {r.ensuite.length > 0 && (
         <>
-          <Sous>Ensuite</Sous>
+          <Sous>{t('Ensuite')}</Sous>
           <Carte couleur={c.accent}>
-            {r.ensuite.map((t, i) => (
-              <Texte key={i}>• {localiser(t)}</Texte>
+            {r.ensuite.map((texte, i) => (
+              <Texte key={i}>• {localiser(texte)}</Texte>
             ))}
           </Carte>
         </>
       )}
 
-      <Sous>Pour aller plus loin</Sous>
+      <Sous>{t('Pour aller plus loin')}</Sous>
       {r.fiches.map((id) => {
         const f = fiche(id);
-        return f ? <Ligne key={id} titre={f.titre} icone="document-text" onPress={() => router.push(`/fiche/${id}`)} /> : null;
+        return f ? <Ligne key={id} titre={traduireFiche(f).titre} icone="document-text" onPress={() => router.push(`/fiche/${id}`)} /> : null;
       })}
 
-      <Bouton label="Autre problème" icone="refresh" discret onPress={recommencer} />
+      <Bouton label={t('Autre problème')} icone="refresh" discret onPress={recommencer} />
     </Ecran>
   );
 }

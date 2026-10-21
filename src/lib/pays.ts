@@ -1,4 +1,5 @@
 import { PAYS, paysDuTelephone, type Pays } from '@/data/pays';
+import { langueActuelle, type Langue } from '@/lib/langue';
 import { KEYS, lire, useStored } from '@/lib/store';
 
 const parCode = (code: string) => PAYS.find((p) => p.code === code) ?? PAYS[0];
@@ -10,10 +11,35 @@ export function usePays() {
   return [parCode(code), setCode] as const;
 }
 
+// Les morceaux de phrase autour des numéros, dans chaque langue.
+const MOTS: Record<Langue['code'], { ou: (n: string) => string; smsOu: (n: string) => string; smsSilencieux: (n?: string) => string }> = {
+  fr: {
+    ou: (n) => `112 (ou le ${n})`,
+    smsOu: (n) => `SMS au ${n}, ou `,
+    smsSilencieux: (n) => (n ? `Si tu ne peux pas parler : SMS au ${n}.` : 'Si tu ne peux pas parler, chuchote ou laisse la ligne ouverte.'),
+  },
+  de: {
+    ou: (n) => `112 (oder ${n})`,
+    smsOu: (n) => `SMS an ${n} oder `,
+    smsSilencieux: (n) => (n ? `Wenn du nicht sprechen kannst: SMS an ${n}.` : 'Wenn du nicht sprechen kannst, flüstere oder lass die Leitung offen.'),
+  },
+  it: {
+    ou: (n) => `112 (o il ${n})`,
+    smsOu: (n) => `SMS al ${n} oppure `,
+    smsSilencieux: (n) => (n ? `Se non puoi parlare: SMS al ${n}.` : 'Se non puoi parlare, sussurra o lascia la linea aperta.'),
+  },
+  en: {
+    ou: (n) => `112 (or ${n})`,
+    smsOu: (n) => `text ${n}, or `,
+    smsSilencieux: (n) => (n ? `If you cannot speak: text ${n}.` : 'If you cannot speak, whisper or leave the line open.'),
+  },
+};
+
 function variables(p: Pays): Record<string, string> {
+  const m = MOTS[langueActuelle().code];
   return {
     urgence: '112',
-    secours: p.ambulance === '112' ? '112' : `112 (ou le ${p.ambulance})`,
+    secours: p.ambulance === '112' ? '112' : m.ou(p.ambulance),
     police: p.police,
     pompiers: p.pompiers,
     ambulance: p.ambulance,
@@ -24,14 +50,12 @@ function variables(p: Pays): Record<string, string> {
     radios: p.radios,
     alerteApp: p.alerteApp,
     orgsAide: p.orgsAide,
-    smsOu: p.sms ? `SMS au ${p.sms}, ou ` : '',
-    smsSilencieux: p.sms
-      ? `Si tu ne peux pas parler : SMS au ${p.sms}.`
-      : 'Si tu ne peux pas parler, chuchote ou laisse la ligne ouverte.',
+    smsOu: p.sms ? m.smsOu(p.sms) : '',
+    smsSilencieux: m.smsSilencieux(p.sms),
   };
 }
 
-/** Remplace {secours}, {police}… par les numéros et noms du pays choisi. */
+/** Remplace {secours}, {police}… par les numéros et noms du pays choisi (dans la langue choisie). */
 export function localiser(texte: string, p: Pays = paysActuel()) {
   const v = variables(p);
   return texte.replace(/\{(\w+)\}/g, (m, k: string) => v[k] ?? m);

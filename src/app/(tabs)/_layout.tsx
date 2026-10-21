@@ -3,6 +3,7 @@ import { router, Tabs } from 'expo-router';
 import { Pressable, Text, type ColorValue } from 'react-native';
 import type { IconName } from '@/components/ui';
 import { c } from '@/lib/theme';
+import { t } from '@/i18n';
 
 const icone =
   (name: IconName) =>
@@ -25,16 +26,16 @@ export default function TabsLayout() {
             accessibilityLabel="Partager Refuge à un proche"
             style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 16, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, backgroundColor: c.cardAlt }}>
             <Ionicons name="share-social" size={20} color={c.accent} />
-            <Text style={{ color: c.text, fontWeight: '700' }}>Partager</Text>
+            <Text style={{ color: c.text, fontWeight: '700' }}>{t('Partager')}</Text>
           </Pressable>
         ),
       }}>
-      <Tabs.Screen name="index" options={{ title: 'Urgence', tabBarIcon: icone('alert-circle') }} />
-      <Tabs.Screen name="savoir" options={{ title: 'Savoir', tabBarIcon: icone('book') }} />
-      <Tabs.Screen name="carte" options={{ title: 'Carte', tabBarIcon: icone('map') }} />
-      <Tabs.Screen name="groupe" options={{ title: 'Groupe', tabBarIcon: icone('people') }} />
-      <Tabs.Screen name="outils" options={{ title: 'Outils', tabBarIcon: icone('flashlight') }} />
-      <Tabs.Screen name="moi" options={{ title: 'Moi', headerTitle: 'Carte de vie', tabBarIcon: icone('id-card') }} />
+      <Tabs.Screen name="index" options={{ title: t('Urgence'), tabBarIcon: icone('alert-circle') }} />
+      <Tabs.Screen name="savoir" options={{ title: t('Savoir'), tabBarIcon: icone('book') }} />
+      <Tabs.Screen name="carte" options={{ title: t('Carte'), tabBarIcon: icone('map') }} />
+      <Tabs.Screen name="groupe" options={{ title: t('Groupe'), tabBarIcon: icone('people') }} />
+      <Tabs.Screen name="outils" options={{ title: t('Outils'), tabBarIcon: icone('flashlight') }} />
+      <Tabs.Screen name="moi" options={{ title: t('Moi'), headerTitle: t('Carte de vie'), tabBarIcon: icone('id-card') }} />
     </Tabs>
   );
 }

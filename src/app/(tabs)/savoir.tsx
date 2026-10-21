@@ -6,6 +6,7 @@ import { Champ, Ecran, Ligne, s, Texte } from '@/components/ui';
 import { CATEGORIES, FICHES } from '@/data/fiches';
 import { chercher } from '@/lib/recherche';
 import { c } from '@/lib/theme';
+import { t, traduireFiche } from '@/i18n';
 
 export default function Savoir() {
   const [q, setQ] = useState('');
@@ -14,26 +15,26 @@ export default function Savoir() {
 
   return (
     <Ecran>
-      <Champ label="Rechercher" placeholder="ex. feu sans briquet, eau, plaie…" value={q} onChangeText={setQ} />
+      <Champ label={t('Rechercher')} placeholder={t('ex. feu sans briquet, eau, plaie…')} value={q} onChangeText={setQ} />
 
       {q.trim() ? (
         resultats.length ? (
           resultats.map(({ fiche: f, extrait }) => <Ligne key={f.id} titre={f.titre} sous={extrait} icone="document-text" onPress={() => router.push(`/fiche/${f.id}`)} />)
         ) : (
-          <Texte muted>Aucune fiche trouvée. Essaie un autre mot.</Texte>
+          <Texte muted>{t('Aucune fiche trouvée. Essaie un autre mot.')}</Texte>
         )
       ) : (
         CATEGORIES.map((cat) => (
           <View key={cat.id} style={{ gap: 6 }}>
             <Pressable style={s.ligne} onPress={() => setOuverte(ouverte === cat.id ? null : cat.id)}>
               <Ionicons name={cat.icone} size={26} color={cat.couleur} />
-              <Text style={[s.ligneTitre, { flex: 1 }]}>{cat.nom}</Text>
+              <Text style={[s.ligneTitre, { flex: 1 }]}>{t(cat.nom)}</Text>
               <Ionicons name={ouverte === cat.id ? 'chevron-up' : 'chevron-down'} size={20} color={c.muted} />
             </Pressable>
             {ouverte === cat.id &&
               FICHES.filter((f) => f.cat === cat.id).map((f) => (
                 <View key={f.id} style={{ marginLeft: 16 }}>
-                  <Ligne titre={f.titre} onPress={() => router.push(`/fiche/${f.id}`)} />
+                  <Ligne titre={traduireFiche(f).titre} onPress={() => router.push(`/fiche/${f.id}`)} />
                 </View>
               ))}
           </View>

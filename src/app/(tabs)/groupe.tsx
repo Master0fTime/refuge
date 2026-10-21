@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Linking, Pressable, Share, Text, View } from 'react-native';
+import { BoutonsStatut } from '@/components/BoutonsStatut';
 import { Bouton, Carte, Champ, Ecran, Ligne, s, Sous, Texte } from '@/components/ui';
 import { nouvelId } from '@/lib/id';
 import { positionActuelle } from '@/lib/position';
@@ -69,6 +70,7 @@ export default function GroupeEcran() {
           <Bouton label="Scanner" icone="scan" onPress={() => router.push('/scanner')} />
         </View>
       </View>
+      <BoutonsStatut />
       <Bouton label={envoi ? 'Localisation…' : 'Envoyer ma position (SMS…)'} icone="navigate" discret onPress={partagerPosition} />
       <Texte muted>
         Tout s’échange de téléphone à téléphone par QR code, sans Internet ni serveur. Faites-le maintenant, ensemble, pendant que tout va bien.

@@ -19,6 +19,25 @@ export const DERNIER_APK: VersionApk | null = null;
 /** Notes de version, la plus récente en premier. Affichées dans « Mises à jour ». */
 export const NOUVEAUTES: { version: string; date: string; points: string[] }[] = [
   {
+    version: '0.7.2',
+    date: '2026-10-22',
+    points: [
+      'Allemand et italien : les 72 fiches, l’assistant guidé, le mode « Je panique », le massage cardiaque et les écrans principaux.',
+      'Langue au choix dans « Pays, langue et numéros » ; l’IA et la voix suivent la langue choisie.',
+      'Alertes d’urgence reconnues aussi en allemand et en italien.',
+    ],
+  },
+  {
+    version: '0.7.1',
+    date: '2026-10-22',
+    points: [
+      'Métronome de massage cardiaque : son et vibration à 110 par minute, cycles 30/2, rappel de relais toutes les 2 minutes.',
+      'Boutons « Je vais bien » et « J’ai besoin d’aide » : un SMS avec ta position à tout ton groupe.',
+      'Bouton « Écouter la fiche » : les gestes lus à voix haute, mains libres.',
+      'Schémas : massage cardiaque, PLS, étouffement, garrot.',
+    ],
+  },
+  {
     version: '0.7',
     date: '2026-10-22',
     points: [

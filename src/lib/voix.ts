@@ -193,14 +193,14 @@ async function voixDeLaLangue() {
 }
 
 /** Parle avec la voix choisie dans les réglages (ou la plus naturelle disponible). */
-export async function dire(texte: string, options: { lent?: boolean } = {}) {
+export async function dire(texte: string, options: { lent?: boolean; finie?: () => void } = {}) {
   const r = lire<ReglageVoix>(KEYS.voix, REGLAGE_DEFAUT);
   const langue = langueActuelle();
   const dispo = await voixDeLaLangue();
   // Une voix choisie pour une autre langue est ignorée : on prend la plus naturelle de la langue.
   const voice = (r.identifiant && dispo.includes(r.identifiant) ? r.identifiant : dispo[0]) ?? undefined;
   Speech.stop();
-  Speech.speak(texte, { language: langue.voix, voice, rate: r.vitesse * (options.lent ? 0.9 : 1), pitch: 1 });
+  Speech.speak(texte, { language: langue.voix, voice, rate: r.vitesse * (options.lent ? 0.9 : 1), pitch: 1, onDone: options.finie, onStopped: options.finie });
 }
 
 export function lireReponse(texte: string) {

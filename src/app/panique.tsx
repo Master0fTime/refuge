@@ -7,6 +7,7 @@ import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, Vibration, V
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { c } from '@/lib/theme';
 import { dire } from '@/lib/voix';
+import { t } from '@/i18n';
 
 // « Je panique » : un DIALOGUE, pas seulement un exercice de respiration.
 // Paniquer ne veut pas dire être incapable d'agir : on commence par comprendre ce qui se passe,
@@ -51,24 +52,24 @@ export default function Panique() {
   voixRef.current = voix;
   const apresRespiration = useRef<Etape>('ancrage');
 
-  const parler = (t: string) => {
-    if (voixRef.current) dire(t, { lent: true });
+  const parler = (texte: string) => {
+    if (voixRef.current) dire(texte, { lent: true });
   };
 
   // Ce qui est dit à voix haute à chaque étape.
   useEffect(() => {
     const textes: Partial<Record<Etape, string>> = {
-      accueil: 'Je suis là avec toi. Qu’est-ce qui se passe ?',
-      danger: 'D’abord ta sécurité. Éloigne-toi des fenêtres. Mets-toi au plus bas, derrière un mur solide.',
-      abri: 'Si tu peux bouger sans danger, va vers l’endroit le plus protégé. Sinon, reste au sol et protège ta tête.',
+      accueil: t('Je suis là avec toi. Qu’est-ce qui se passe ?'),
+      danger: t('D’abord ta sécurité. Éloigne-toi des fenêtres. Mets-toi au plus bas, derrière un mur solide.'),
+      abri: t('Si tu peux bouger sans danger, va vers l’endroit le plus protégé. Sinon, reste au sol et protège ta tête.'),
       ancrage: ANCRAGE[ancrage].replace('\n', ' '),
-      blesse: 'Est-ce que toi ou quelqu’un près de toi est blessé ?',
-      enDanger: 'Es-tu en danger, là où tu es, maintenant ?',
-      seul: 'Es-tu seul ?',
-      suite: 'Tu as tenu bon. Qu’est-ce que tu veux faire maintenant ?',
+      blesse: t('Est-ce que toi ou quelqu’un près de toi est blessé ?'),
+      enDanger: t('Es-tu en danger, là où tu es, maintenant ?'),
+      seul: t('Es-tu seul ?'),
+      suite: t('Tu as tenu bon. Qu’est-ce que tu veux faire maintenant ?'),
     };
-    const t = textes[etape];
-    if (t) parler(t);
+    const texte = textes[etape];
+    if (texte) parler(texte);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [etape, ancrage]);
 
@@ -78,13 +79,13 @@ export default function Panique() {
     let i = 0;
     let n = 0;
     let timer: ReturnType<typeof setTimeout>;
-    parler(cycles === 1 ? 'Une seule respiration lente, avec moi.' : 'On respire ensemble. Suis le cercle.');
+    parler(cycles === 1 ? t('Une seule respiration lente, avec moi.') : t('On respire ensemble. Suis le cercle.'));
     const pas = () => {
-      const t = TEMPS[i];
+      const tps = TEMPS[i];
       setTemps(i);
-      Vibration.vibrate(t.vibration as unknown as number[]);
-      parler(t.nom);
-      Animated.timing(echelle, { toValue: t.echelle, duration: t.duree, easing: Easing.inOut(Easing.sin), useNativeDriver: true }).start();
+      Vibration.vibrate(tps.vibration as unknown as number[]);
+      parler(t(tps.nom));
+      Animated.timing(echelle, { toValue: tps.echelle, duration: tps.duree, easing: Easing.inOut(Easing.sin), useNativeDriver: true }).start();
       timer = setTimeout(() => {
         i = (i + 1) % TEMPS.length;
         if (i === 0) {
@@ -97,7 +98,7 @@ export default function Panique() {
           }
         }
         pas();
-      }, t.duree);
+      }, tps.duree);
     };
     const debut = setTimeout(pas, 1500);
     return () => {
@@ -144,45 +145,45 @@ export default function Panique() {
 
       {etape === 'accueil' && (
         <ScrollView contentContainerStyle={st.liste}>
-          <Text style={st.grand}>Je suis là avec toi.</Text>
-          <Text style={st.phrase}>Qu’est-ce qui se passe ?</Text>
-          <Choix icone="warning" couleur={c.danger} label="Danger autour de moi" sous="Explosion, tirs, incendie, eau qui monte…" onPress={() => setEtape('danger')} />
-          <Choix icone="medkit" couleur="#f87171" label="Quelqu’un est blessé" onPress={() => quitter({ pathname: '/guide', params: { probleme: 'blesse' } })} />
-          <Choix icone="people" couleur="#c084fc" label="Je suis séparé de mes proches" onPress={() => quitter({ pathname: '/guide', params: { probleme: 'separe' } })} />
-          <Choix icone="pulse" couleur="#2dd4bf" label="Crise d’angoisse" sous="Cœur qui s’emballe, souffle court, peur intense" onPress={() => respirer(6, 'ancrage')} />
-          <Choix icone="help-circle" couleur={c.accent} label="Je ne sais pas, tout se mélange" onPress={() => respirer(1, 'blesse')} />
-          <Choix icone="chatbubbles" couleur={c.info} label="Je veux en parler" sous="L’IA t’écoute et t’aide à y voir clair" onPress={() => quitter({ pathname: '/demander', params: { voix: '1' } })} />
+          <Text style={st.grand}>{t('Je suis là avec toi.')}</Text>
+          <Text style={st.phrase}>{t('Qu’est-ce qui se passe ?')}</Text>
+          <Choix icone="warning" couleur={c.danger} label={t('Danger autour de moi')} sous={t('Explosion, tirs, incendie, eau qui monte…')} onPress={() => setEtape('danger')} />
+          <Choix icone="medkit" couleur="#f87171" label={t('Quelqu’un est blessé')} onPress={() => quitter({ pathname: '/guide', params: { probleme: 'blesse' } })} />
+          <Choix icone="people" couleur="#c084fc" label={t('Je suis séparé de mes proches')} onPress={() => quitter({ pathname: '/guide', params: { probleme: 'separe' } })} />
+          <Choix icone="pulse" couleur="#2dd4bf" label={t('Crise d’angoisse')} sous={t('Cœur qui s’emballe, souffle court, peur intense')} onPress={() => respirer(6, 'ancrage')} />
+          <Choix icone="help-circle" couleur={c.accent} label={t('Je ne sais pas, tout se mélange')} onPress={() => respirer(1, 'blesse')} />
+          <Choix icone="chatbubbles" couleur={c.info} label={t('Je veux en parler')} sous={t('L’IA t’écoute et t’aide à y voir clair')} onPress={() => quitter({ pathname: '/demander', params: { voix: '1' } })} />
         </ScrollView>
       )}
 
       {etape === 'danger' && (
         <ScrollView contentContainerStyle={st.liste}>
-          <Text style={st.grand}>D’abord, ta sécurité.</Text>
+          <Text style={st.grand}>{t('D’abord, ta sécurité.')}</Text>
           <Consigne n={1} texte="Éloigne-toi des fenêtres et des vitres." />
           <Consigne n={2} texte="Mets-toi au plus bas, derrière un mur solide ou dans une pièce sans fenêtre (couloir, salle de bain, sous-sol)." />
           <Consigne n={3} texte="Si c’est à portée de main : chaussures, téléphone, papiers. Sinon, laisse tout." />
           <Consigne n={4} texte="Ne sors pas voir ce qui se passe." />
-          <Text style={st.phrase}>Es-tu à l’abri maintenant ?</Text>
+          <Text style={st.phrase}>{t('Es-tu à l’abri maintenant ?')}</Text>
           <OuiNon oui={() => respirer(1, 'suite')} non={() => setEtape('abri')} />
         </ScrollView>
       )}
 
       {etape === 'abri' && (
         <ScrollView contentContainerStyle={st.liste}>
-          <Text style={st.grand}>Protège-toi.</Text>
+          <Text style={st.grand}>{t('Protège-toi.')}</Text>
           <Consigne n={1} texte="Si tu peux bouger sans danger : va vers l’endroit le plus protégé (sous-sol, cage d’escalier, couloir au centre du bâtiment)." />
           <Consigne n={2} texte="Sinon : reste allongé au sol, protège ta tête avec tes bras." />
           <Consigne n={3} texte="Odeur de gaz ou fumée : sors dès que c’est possible, en restant bas." />
-          <GrosBouton label="Je suis à l’abri" couleur={c.ok} onPress={() => respirer(1, 'suite')} />
+          <GrosBouton label={t('Je suis à l’abri')} couleur={c.ok} onPress={() => respirer(1, 'suite')} />
         </ScrollView>
       )}
 
       {etape === 'respiration' && (
         <>
-          <Text style={st.phrase}>{PHRASES[phrase]}</Text>
+          <Text style={st.phrase}>{t(PHRASES[phrase])}</Text>
           <View style={st.centre}>
             <Animated.View style={[st.cercle, { transform: [{ scale: echelle }] }]} />
-            <Text style={st.temps}>{TEMPS[temps].nom}</Text>
+            <Text style={st.temps}>{t(TEMPS[temps].nom)}</Text>
           </View>
           {cycles > 1 && (
             <Text style={st.petit}>
@@ -190,15 +191,15 @@ export default function Panique() {
             </Text>
           )}
           <Pressable onPress={() => setEtape(apresRespiration.current)} style={st.lien}>
-            <Text style={st.lienTxt}>Continuer</Text>
+            <Text style={st.lienTxt}>{t('Continuer')}</Text>
           </Pressable>
         </>
       )}
 
       {etape === 'ancrage' && (
         <Pressable style={st.plein} onPress={() => (ancrage < ANCRAGE.length - 1 ? setAncrage(ancrage + 1) : setEtape('blesse'))}>
-          <Text style={st.grand}>{ANCRAGE[ancrage]}</Text>
-          <Text style={st.petit}>Prends ton temps. Touche l’écran quand c’est fait.</Text>
+          <Text style={st.grand}>{t(ANCRAGE[ancrage])}</Text>
+          <Text style={st.petit}>{t('Prends ton temps. Touche l’écran quand c’est fait.')}</Text>
         </Pressable>
       )}
 
@@ -210,7 +211,7 @@ export default function Panique() {
         <Question
           texte="Es-tu seul ?"
           oui={() => {
-            parler('Tu n’es pas complètement seul : je suis là, et tu peux prévenir tes proches.');
+            parler(t('Tu n’es pas complètement seul : je suis là, et tu peux prévenir tes proches.'));
             setEtape('suite');
           }}
           non={() => setEtape('suite')}
@@ -219,12 +220,12 @@ export default function Panique() {
 
       {etape === 'suite' && (
         <ScrollView contentContainerStyle={st.liste}>
-          <Text style={st.grand}>Tu as tenu bon.</Text>
-          <Text style={st.phrase}>Qu’est-ce que tu veux faire maintenant ?</Text>
-          <GrosBouton label="Comprendre quoi faire (assistant)" onPress={() => quitter('/guide')} />
-          <GrosBouton label="En parler à l’IA" onPress={() => quitter({ pathname: '/demander', params: { voix: '1' } })} />
-          <GrosBouton label="Prévenir mes proches" onPress={() => quitter('/groupe')} />
-          <GrosBouton label="Respirer encore" discret onPress={() => respirer(6, 'suite')} />
+          <Text style={st.grand}>{t('Tu as tenu bon.')}</Text>
+          <Text style={st.phrase}>{t('Qu’est-ce que tu veux faire maintenant ?')}</Text>
+          <GrosBouton label={t('Comprendre quoi faire (assistant)')} onPress={() => quitter('/guide')} />
+          <GrosBouton label={t('En parler à l’IA')} onPress={() => quitter({ pathname: '/demander', params: { voix: '1' } })} />
+          <GrosBouton label={t('Prévenir mes proches')} onPress={() => quitter('/groupe')} />
+          <GrosBouton label={t('Respirer encore')} discret onPress={() => respirer(6, 'suite')} />
         </ScrollView>
       )}
     </View>
@@ -256,10 +257,10 @@ function OuiNon({ oui, non }: { oui: () => void; non: () => void }) {
   return (
     <View style={{ flexDirection: 'row', gap: 16, alignSelf: 'stretch' }}>
       <View style={{ flex: 1 }}>
-        <GrosBouton label="Oui" couleur={c.ok} onPress={oui} />
+        <GrosBouton label={t('Oui')} couleur={c.ok} onPress={oui} />
       </View>
       <View style={{ flex: 1 }}>
-        <GrosBouton label="Non" couleur={c.danger} onPress={non} />
+        <GrosBouton label={t('Non')} couleur={c.danger} onPress={non} />
       </View>
     </View>
   );
@@ -271,10 +272,10 @@ function Question({ texte, oui, non }: { texte: string; oui: () => void; non: ()
       <Text style={st.grand}>{texte}</Text>
       <View style={{ flexDirection: 'row', gap: 16, alignSelf: 'stretch' }}>
         <View style={{ flex: 1 }}>
-          <GrosBouton label="Oui" couleur={c.danger} onPress={oui} />
+          <GrosBouton label={t('Oui')} couleur={c.danger} onPress={oui} />
         </View>
         <View style={{ flex: 1 }}>
-          <GrosBouton label="Non" couleur={c.ok} onPress={non} />
+          <GrosBouton label={t('Non')} couleur={c.ok} onPress={non} />
         </View>
       </View>
     </View>

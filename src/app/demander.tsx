@@ -14,6 +14,7 @@ import { chercher, type Resultat } from '@/lib/recherche';
 import { KEYS, useStored } from '@/lib/store';
 import { c, space } from '@/lib/theme';
 import { arreterEtTranscrire, arreterLecture, demarrerEnregistrement, lireReponse, voixInstallee } from '@/lib/voix';
+import { t } from '@/i18n';
 
 type Bulle = { role: 'user' | 'assistant'; texte: string; sources?: Resultat[]; alertes?: Alerte[]; sansIA?: boolean };
 type Etat = 'libre' | 'ecoute' | 'transcription' | 'chargement' | 'reponse';
@@ -85,8 +86,8 @@ export default function Demander() {
     if (!iaDispo || !modele) {
       majDerniere({
         texte: sources.length
-          ? 'L’IA n’est pas installée. Voici les fiches qui correspondent à ta question :'
-          : 'Je n’ai pas trouvé de fiche sur ce sujet. Essaie avec d’autres mots, ou parcours l’onglet Savoir.',
+          ? t('L’IA n’est pas installée. Voici les fiches qui correspondent à ta question :')
+          : t('Je n’ai pas trouvé de fiche sur ce sujet. Essaie avec d’autres mots, ou parcours l’onglet Savoir.'),
       });
       setEtat('libre');
       return;
@@ -110,9 +111,9 @@ export default function Demander() {
 
   const ecouter = async () => {
     if (!voixDispo) {
-      Alert.alert('Commande vocale non installée', 'Installe-la depuis « Préparer mon téléphone » (environ 60 à 190 Mo).', [
-        { text: 'Plus tard' },
-        { text: 'Installer', onPress: () => router.push('/preparer') },
+      Alert.alert('Commande vocale non installée', t('Installe-la depuis « Préparer mon téléphone » (environ 60 à 190 Mo).'), [
+        { text: t('Plus tard') },
+        { text: t('Installer'), onPress: () => router.push('/preparer') },
       ]);
       return;
     }
@@ -134,7 +135,7 @@ export default function Demander() {
       const texte = await arreterEtTranscrire();
       if (!texte) {
         setEtat('libre');
-        Alert.alert('Je n’ai rien entendu', 'Rapproche le téléphone de ta bouche et réessaie.');
+        Alert.alert('Je n’ai rien entendu', t('Rapproche le téléphone de ta bouche et réessaie.'));
         return;
       }
       await envoyer(texte, true);
@@ -151,15 +152,15 @@ export default function Demander() {
       <ScrollView ref={scroll} contentContainerStyle={{ padding: space.lg, gap: space.md }} onContentSizeChange={() => scroll.current?.scrollToEnd()}>
         {iaDispo === false && (
           <Carte couleur={c.accent}>
-            <Texte>L’IA n’est pas encore installée sur ce téléphone. Les réponses se limiteront aux fiches correspondantes.</Texte>
-            <Bouton label="Préparer mon téléphone" icone="download" discret onPress={() => router.push('/preparer')} />
+            <Texte>{t('L’IA n’est pas encore installée sur ce téléphone. Les réponses se limiteront aux fiches correspondantes.')}</Texte>
+            <Bouton label={t('Préparer mon téléphone')} icone="download" discret onPress={() => router.push('/preparer')} />
           </Carte>
         )}
         {bulles.length === 0 && etat === 'libre' && (
           <>
-            <Texte muted>Explique ta situation avec tes mots, à l’écrit ou au micro : où tu es, avec qui, ce que tu as. Exemples :</Texte>
+            <Texte muted>{t('Explique ta situation avec tes mots, à l’écrit ou au micro : où tu es, avec qui, ce que tu as. Exemples :')}</Texte>
             {EXEMPLES.map((e) => (
-              <Bouton key={e} label={e} discret onPress={() => envoyer(e)} />
+              <Bouton key={e} label={t(e)} discret onPress={() => envoyer(t(e))} />
             ))}
           </>
         )}
@@ -191,13 +192,13 @@ export default function Demander() {
                 {!!b.texte && !(etat === 'reponse' && i === bulles.length - 1) && (
                   <Pressable onPress={() => lireReponse(b.texte)} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' }}>
                     <Ionicons name="volume-high" size={20} color={c.info} />
-                    <Text style={{ color: c.info, fontWeight: '600' }}>Écouter</Text>
+                    <Text style={{ color: c.info, fontWeight: '600' }}>{t('Écouter')}</Text>
                   </Pressable>
                 )}
               </Carte>
               {!!b.sources?.length && (
                 <View style={{ gap: 6 }}>
-                  <Texte muted>Sources :</Texte>
+                  <Texte muted>{t('Sources :')}</Texte>
                   {b.sources.map((s, n) => (
                     <Pressable
                       key={s.fiche.id}
@@ -214,7 +215,7 @@ export default function Demander() {
           ),
         )}
         {bulles.length > 0 && (
-          <Text style={{ color: c.muted, fontSize: 12 }}>L’IA peut se tromper. En cas d’urgence vitale, suis les fiches et appelle le 112.</Text>
+          <Text style={{ color: c.muted, fontSize: 12 }}>{t('L’IA peut se tromper. En cas d’urgence vitale, suis les fiches et appelle le 112.')}</Text>
         )}
       </ScrollView>
 
@@ -224,7 +225,7 @@ export default function Demander() {
           style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, padding: space.xl, paddingBottom: space.xl + insets.bottom, backgroundColor: etat === 'ecoute' ? c.danger : c.cardAlt }}>
           {etat === 'ecoute' ? <Ionicons name="mic" size={32} color="#000" /> : <ActivityIndicator color={c.text} />}
           <Text style={{ color: etat === 'ecoute' ? '#000' : c.text, fontSize: 18, fontWeight: '800' }}>
-            {etat === 'ecoute' ? 'Je t’écoute… (envoi automatique quand tu te tais)' : 'Je transcris ce que tu as dit…'}
+            {etat === 'ecoute' ? t('Je t’écoute… (envoi automatique quand tu te tais)') : t('Je transcris ce que tu as dit…')}
           </Text>
         </Pressable>
       ) : (
@@ -235,7 +236,7 @@ export default function Demander() {
           <TextInput
             value={q}
             onChangeText={setQ}
-            placeholder="Ta question ou ta situation…"
+            placeholder={t('Ta question ou ta situation…')}
             placeholderTextColor={c.muted}
             multiline
             style={{ flex: 1, color: c.text, fontSize: 16, maxHeight: 120, paddingHorizontal: 8 }}

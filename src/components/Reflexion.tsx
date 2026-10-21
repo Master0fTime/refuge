@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, Text, View } from 'react-native';
 import { c } from '@/lib/theme';
+import { t } from '@/i18n';
 
 export type Etape = 'chargement' | 'lecture' | 'ecriture';
 
@@ -46,15 +47,15 @@ export function Reflexion({ etape, modeleLent }: { etape: Etape; modeleLent: boo
           ))}
         </View>
         <Text style={{ color: c.text, fontSize: 16, flex: 1 }}>
-          {TEXTES[etape]}… {secondes} s
+          {t(TEXTES[etape])}… {secondes} s
         </Text>
       </View>
       {secondes >= 40 && etape !== 'ecriture' && (
         <Pressable onPress={() => router.push('/ia')}>
           <Text style={{ color: c.muted, fontSize: 14 }}>
             {modeleLent
-              ? 'C’est long : le modèle « Avancé » est lent sur téléphone. Touche ici pour passer au « Standard », 2 à 3 fois plus rapide.'
-              : 'C’est long : ton téléphone travaille sans Internet, sur son seul processeur. Touche ici pour essayer le modèle « Léger », plus rapide.'}
+              ? t('C’est long : le modèle « Avancé » est lent sur téléphone. Touche ici pour passer au « Standard », 2 à 3 fois plus rapide.')
+              : t('C’est long : ton téléphone travaille sans Internet, sur son seul processeur. Touche ici pour essayer le modèle « Léger », plus rapide.')}
           </Text>
         </Pressable>
       )}

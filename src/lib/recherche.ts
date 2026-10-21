@@ -1,5 +1,7 @@
 import { openDatabaseSync } from 'expo-sqlite';
 import { FICHES, rechercher as rechercherSimple, type Fiche } from '@/data/fiches';
+import { traduireFiche } from '@/i18n';
+import { langueActuelle } from '@/lib/langue';
 import { localiser, paysActuel } from '@/lib/pays';
 
 // Index plein texte (SQLite FTS5) de toutes les fiches, reconstruit quand le contenu change.
@@ -7,8 +9,9 @@ import { localiser, paysActuel } from '@/lib/pays';
 
 const db = openDatabaseSync('savoir.db');
 
-export const texteFiche = (f: Fiche) =>
-  localiser(
+export const texteFiche = (fiche: Fiche) => {
+  const f = traduireFiche(fiche);
+  return localiser(
     [
       f.resume,
       ...(f.choix ?? []).map((c) => c.label),
@@ -18,18 +21,22 @@ export const texteFiche = (f: Fiche) =>
       ...(f.ensuite ?? []).map((a) => `Ensuite : ${a}`),
     ].join('\n'),
   );
+};
 
-// Empreinte du contenu et du pays : si une fiche ou le pays change, l'index est reconstruit.
+/** Pays + langue : l'index de recherche dépend des deux (numéros et textes traduits). */
+const contexteIndex = () => `${paysActuel().code}-${langueActuelle().code}`;
+
+// Empreinte du contenu, du pays et de la langue : si l'un change, l'index est reconstruit.
 function empreinte() {
   let h = 0;
-  const s = paysActuel().code + FICHES.map((f) => f.id + f.titre + texteFiche(f)).join('|');
+  const s = contexteIndex() + FICHES.map((f) => f.id + traduireFiche(f).titre + texteFiche(f)).join('|');
   for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
   return String(h);
 }
 
 let indexePour: string | null = null;
 function indexer() {
-  if (indexePour === paysActuel().code) return;
+  if (indexePour === contexteIndex()) return;
   db.execSync(`
     CREATE TABLE IF NOT EXISTS meta (cle TEXT PRIMARY KEY, valeur TEXT);
     CREATE VIRTUAL TABLE IF NOT EXISTS fiches_fts USING fts5(
@@ -41,11 +48,11 @@ function indexer() {
   if (actuelle?.valeur !== e) {
     db.withTransactionSync(() => {
       db.runSync('DELETE FROM fiches_fts');
-      for (const f of FICHES) db.runSync('INSERT INTO fiches_fts (id, titre, contenu) VALUES (?, ?, ?)', f.id, f.titre, texteFiche(f));
+      for (const f of FICHES) db.runSync('INSERT INTO fiches_fts (id, titre, contenu) VALUES (?, ?, ?)', f.id, traduireFiche(f).titre, texteFiche(f));
       db.runSync('INSERT OR REPLACE INTO meta (cle, valeur) VALUES (?, ?)', 'empreinte', e);
     });
   }
-  indexePour = paysActuel().code;
+  indexePour = contexteIndex();
 }
 
 // Mots trop courants (ou de politesse) pour aider la recherche.
@@ -189,7 +196,7 @@ function requete(mots: string[], limite: number): Resultat[] {
   );
   return lignes.flatMap((l) => {
     const fiche = FICHES.find((f) => f.id === l.id);
-    return fiche ? [{ fiche, extrait: l.extrait }] : [];
+    return fiche ? [{ fiche: traduireFiche(fiche), extrait: l.extrait }] : [];
   });
 }
 
