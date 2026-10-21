@@ -1,4 +1,5 @@
 import type { IconName } from '@/components/ui';
+import { FICHES_URGENCES } from './fiches-urgences';
 
 // Contenu v0.1 : rédigé à partir de sources publiques (ATP 3-50.21 Survival, Ready.gov / CDC,
 // référentiels français de premiers secours). Les fiches médicales DOIVENT être relues
@@ -9,6 +10,7 @@ export type Categorie = { id: string; nom: string; icone: IconName; couleur: str
 export const CATEGORIES: Categorie[] = [
   { id: 'vital', nom: 'Urgences vitales', icone: 'heart', couleur: '#ef4444' },
   { id: 'soins', nom: 'Soins et blessures', icone: 'medkit', couleur: '#f87171' },
+  { id: 'catastrophes', nom: 'Accidents et catastrophes', icone: 'thunderstorm', couleur: '#fb923c' },
   { id: 'eau', nom: 'Eau', icone: 'water', couleur: '#38bdf8' },
   { id: 'feu', nom: 'Feu', icone: 'flame', couleur: '#f97316' },
   { id: 'abri', nom: 'Abri et chaleur', icone: 'home', couleur: '#a3e635' },
@@ -925,6 +927,9 @@ export const FICHES: Fiche[] = [
     source: 'Gouvernement français (« kit d’urgence ») ; Ready.gov.',
   },
 ];
+
+// Base d'urgences (accidents, catastrophes, santé, sécurité), dans un fichier séparé.
+FICHES.push(...FICHES_URGENCES);
 
 export const fiche = (id: string) => FICHES.find((f) => f.id === id);
 

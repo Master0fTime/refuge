@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 import type { DownloadResumable } from 'expo-file-system/legacy';
 import { Bouton, Carte, Ecran, Sous, Texte, Titre } from '@/components/ui';
-import { liberer } from '@/lib/ia/moteur';
+import { liberer, tester } from '@/lib/ia/moteur';
 import {
   espaceLibre,
   estInstalle,
@@ -24,6 +24,7 @@ type EtatDl = { progres: number; tache: DownloadResumable; enPause: boolean };
 
 export default function ReglagesIA() {
   const [actif, setActif] = useStored<string | null>(KEYS.modele, null);
+  const [test, setTest] = useState<string | null>(null);
   const [installes, setInstalles] = useState<Record<string, boolean>>({});
   const [dl, setDl] = useState<Record<string, EtatDl>>({});
   const [libre, setLibre] = useState<number | null>(null);
@@ -192,6 +193,34 @@ export default function ReglagesIA() {
           </Carte>
         );
       })}
+
+      <Sous>Diagnostic</Sous>
+      <Bouton
+        label={test === '…' ? 'Test en cours…' : 'Tester l’IA'}
+        icone="speedometer"
+        discret
+        onPress={async () => {
+          const m = MODELES.find((x) => x.id === actif);
+          if (!m || !installes[m.id] || test === '…') return setTest(m ? 'Le modèle choisi n’est pas installé.' : 'Aucun modèle choisi.');
+          setTest('…');
+          try {
+            const r = await tester(m);
+            setTest(
+              `Chargement : ${(r.chargementMs / 1000).toFixed(1)} s · premier mot : ${(r.premierMs / 1000).toFixed(1)} s · ${r.motsParSeconde} mots/s
+Réponse : « ${r.texte} »`,
+            );
+          } catch (e) {
+            setTest(`Erreur : ${e instanceof Error ? e.message : String(e)}`);
+          }
+        }}
+      />
+      {test && test !== '…' && (
+        <Carte>
+          <Text selectable style={{ color: c.text }}>
+            {test}
+          </Text>
+        </Carte>
+      )}
 
       <Sous>Sans Internet</Sous>
       <Texte muted>

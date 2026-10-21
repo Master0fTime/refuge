@@ -47,4 +47,5 @@ export const KEYS = {
   pays: 'pays',
   voix: 'voix',
   reperes: 'reperes',
+  langue: 'langue',
 } as const;

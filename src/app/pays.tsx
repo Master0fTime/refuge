@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Linking, Pressable, Text, View } from 'react-native';
 import { Carte, Ecran, s, Sous, Texte, Titre } from '@/components/ui';
 import { PAYS } from '@/data/pays';
+import { LANGUES, useLangue } from '@/lib/langue';
 import { usePays } from '@/lib/pays';
 import { c, space } from '@/lib/theme';
 
@@ -17,6 +18,7 @@ function LigneNumero({ nom, numero }: { nom: string; numero: string }) {
 
 export default function PaysEcran() {
   const [pays, setPays] = usePays();
+  const [langue, setLangue] = useLangue();
 
   return (
     <Ecran>
@@ -36,6 +38,21 @@ export default function PaysEcran() {
         ))}
       </View>
       <Texte muted>Le pays choisi adapte les numéros dans toutes les fiches et dans les réponses de l’IA.</Texte>
+
+      <Sous>Langue de l’IA et de la voix</Sous>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
+        {LANGUES.map((l) => (
+          <Pressable
+            key={l.code}
+            onPress={() => setLangue(l.code)}
+            style={{ paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, backgroundColor: l.code === langue.code ? c.accent : c.cardAlt }}>
+            <Text style={{ color: l.code === langue.code ? '#000' : c.text, fontSize: 16, fontWeight: '700' }}>
+              {l.drapeau} {l.nom}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      <Texte muted>L’IA te répond et t’écoute dans cette langue. Les écrans et les fiches seront traduits dans une prochaine version.</Texte>
 
       <Sous>Numéros d’urgence</Sous>
       <LigneNumero nom="Urgence (toute l’Europe)" numero="112" />

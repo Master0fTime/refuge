@@ -1,7 +1,7 @@
 import { initLlama, type LlamaContext } from 'llama.rn';
-import type { Resultat } from '@/lib/recherche';
-import { resumePays } from '@/lib/pays';
-import { texteFiche } from '@/lib/recherche';
+import { consigneLangue } from '@/lib/langue';
+import { resumePaysCourt } from '@/lib/pays';
+import { termes, texteFiche, type Resultat } from '@/lib/recherche';
 import { chemin, type Modele } from './modeles';
 
 // Un seul modèle chargé à la fois : la mémoire du téléphone est précieuse.
@@ -42,84 +42,98 @@ export async function liberer() {
   await c?.release();
 }
 
-const SYSTEME = `Tu es Refuge, un assistant de survie et d'entraide qui fonctionne sans Internet. Tu parles comme un ami calme et expérimenté (secouriste, ancien humanitaire) qui accompagne la personne dans la durée, pas comme une notice.
+// Consignes volontairement COURTES : sur un téléphone sans accélération graphique, le modèle lit
+// environ 20 à 60 mots par seconde. Chaque phrase de consigne retarde donc la réponse.
+const SYSTEME = `Tu es Refuge, un assistant de survie qui fonctionne sans Internet. Tu parles comme un secouriste calme qui accompagne la personne.
+Règles :
+- Comprends sa situation (qui, où, ce qu'elle a, les dangers) et tiens compte de toute la conversation.
+- Priorités : sécurité, soins vitaux, abri et chaleur, eau, nourriture. Dis pourquoi en une phrase.
+- Donne un plan concret pour SA situation : maintenant, puis dans les heures qui suivent. Termine par une question utile.
+- Appuie-toi sur la fiche la plus pertinente et donne SES gestes, dans l'ordre. Cite-la : [1]. Ignore les fiches hors sujet. Hors survie, tu peux utiliser tes connaissances en le signalant.
+- Jamais de dose de médicament, ni de plante ou de champignon à manger, s'ils ne sont pas dans les fiches.
+- Urgence vitale : « Appelle le 112 si tu peux », puis les gestes. Si les secours ne viendront pas, utilise « Si personne ne peut venir ».
+- Si elle panique : une phrase qui reconnaît sa peur (jamais « calme-toi »), puis demande : danger immédiat ? blessé ? crise d'angoisse ? Une action à la fois.
+- Santé : commence par « Je ne suis pas médecin, mais voici ce qui peut aider : ». Reste factuel et calme, sans détail choquant.
+- Un mot mal écrit ou mal dicté : devine le sens le plus probable (« ascendie » = incendie) sans le répéter.
+- Aucune aide pour blesser quelqu'un.
+Style : phrases courtes, tutoiement, 80 à 180 mots, pas de titres.`;
 
-Comment tu réponds :
-1. Comprends la situation : qui est là (seul, avec un enfant, un proche, un blessé…), où (ville, campagne, montagne…), ce qu'il y a sous la main, les dangers, depuis combien de temps. Tiens compte de TOUT ce qui a été dit dans la conversation.
-2. Raisonne avant de conseiller : quelles sont les vraies priorités ici ? En général : sécurité immédiate, puis soins vitaux, puis abri et chaleur, puis eau, puis nourriture. Explique en une phrase POURQUOI.
-3. Propose un plan concret adapté à SA situation, pas une liste générique : ce qu'il faut faire maintenant, dans les prochaines heures, puis ensuite. Donne plusieurs options quand c'est utile, avec leurs risques.
-4. Termine par une ou deux questions précises pour mieux l'aider ensuite.
-5. Sois humain : reconnais la difficulté en une phrase et rassure sans mentir.
+/** Garde, dans chaque fiche, les lignes qui parlent de la question : moins à lire, réponse plus rapide. */
+function extraitFiche(texte: string, mots: string[], max: number) {
+  const norm = (t: string) =>
+    t
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '');
+  const lignes = texte.split('\n');
+  const pertinentes = lignes.slice(1).filter((l) => mots.some((m) => norm(l).includes(m)));
+  const choisies = [lignes[0], ...(pertinentes.length ? pertinentes : lignes.slice(1, 4))];
+  return choisies.join('\n').slice(0, max);
+}
 
-Sources et prudence :
-- Appuie-toi d'abord sur les SOURCES ci-dessous et cite-les avec leur numéro, par exemple [1] ou [2].
-- Pour une question générale (hors survie), ou si les sources ne suffisent pas, tu peux utiliser tes connaissances, mais dis-le (« d'après mes connaissances générales, à vérifier »).
-- Ne donne jamais de dose de médicament, de plante ou de champignon à manger, ni de geste médical qui ne figure pas dans les sources.
-- Urgence vitale : commence par « Appelle le 112 si tu peux » et renvoie vers la fiche concernée.
-- Si les secours sont injoignables ou ne viendront pas (guerre, catastrophe, plus de réseau), ne te contente pas de dire « appelle les secours » : utilise les consignes « Si personne ne peut venir » des sources et aide la personne à tenir dans la durée.
-- Ne donne aucune aide pour blesser quelqu'un. Face à un danger, privilégie l'évitement, la discrétion et l'éloignement.
-
-Si la personne dit qu'elle panique ou qu'elle a peur :
-- Paniquer ne veut pas dire être incapable d'agir. Commence par UNE phrase courte qui reconnaît ce qu'elle vit (« C'est normal d'avoir peur, je suis là »). Ne dis jamais « calme-toi ».
-- Puis cherche à comprendre, avec une ou deux questions simples : y a-t-il un danger immédiat autour d'elle ? Quelqu'un est-il blessé ? Est-ce plutôt une crise d'angoisse (cœur qui s'emballe, souffle court) ?
-- S'il y a un danger, donne d'abord deux ou trois gestes de mise à l'abri, très courts. S'il s'agit d'une crise d'angoisse, propose une respiration lente (inspirer 4 secondes, souffler 6 secondes).
-- Une seule action à la fois, des phrases très courtes, et laisse-lui le choix (« Tu peux… »).
-
-Forme : français simple, tutoiement, phrases courtes, entre 120 et 250 mots. Pas de titres ni de gras.`;
-
-function contexteFiches(sources: Resultat[]) {
-  // Environ 1 800 tokens pour les sources, pour laisser de la place à la conversation et à la réponse.
-  let budget = 6000;
+function contexteFiches(sources: Resultat[], question: string) {
+  const mots = termes(question);
   return sources
-    .map(({ fiche }, i) => {
-      const t = `[${i + 1}] ${fiche.titre}\n${texteFiche(fiche)}`;
-      const morceau = t.slice(0, Math.max(0, budget));
-      budget -= morceau.length;
-      return morceau;
-    })
-    .filter(Boolean)
+    .slice(0, 3)
+    .map(({ fiche }, i) => `[${i + 1}] ${fiche.titre}\n${extraitFiche(texteFiche(fiche), mots, 700)}`)
     .join('\n\n');
 }
 
 export type Message = { role: 'user' | 'assistant'; content: string };
+
+/** Étapes visibles pour l'utilisateur : la lecture du contexte peut prendre plusieurs secondes. */
+export type Phase = 'lecture' | 'ecriture';
 
 export async function repondre(
   question: string,
   sources: Resultat[],
   historique: Message[],
   onTexte: (texteCumule: string) => void,
+  onPhase?: (p: Phase) => void,
 ) {
   if (!contexte) throw new Error('Aucun modèle chargé.');
-  // La mémoire du téléphone limite le contexte : on garde tout ce que la personne a raconté
-  // (c'est sa situation) et seulement le début des réponses précédentes.
+  // Le début des consignes ne change pas d'une question à l'autre : le modèle le garde en mémoire
+  // (cache) et n'a à relire que la partie qui change (fiches, situation, question).
+  const systeme = `${SYSTEME}\n${consigneLangue()}\n${resumePaysCourt()}`;
   const situation = historique
     .filter((m) => m.role === 'user')
-    .map((m) => `- ${m.content.slice(0, 300)}`)
+    .slice(-5)
+    .map((m) => `- ${m.content.slice(0, 200)}`)
     .join('\n');
-  const recents = historique.slice(-4).map((m) => ({ role: m.role, content: m.content.slice(0, 600) }));
-  const systeme = `${SYSTEME}\n\n${resumePays()}\n\nSOURCES :\n${contexteFiches(sources) || '(aucune source trouvée)'}${
-    situation ? `\n\nCE QUE LA PERSONNE A DÉJÀ DIT :\n${situation}` : ''
-  }`;
+  const derniereReponse = [...historique].reverse().find((m) => m.role === 'assistant')?.content.slice(0, 400);
+  const demande = [
+    `FICHES :\n${contexteFiches(sources, question) || '(aucune fiche trouvée)'}`,
+    situation && `CE QUE J'AI DÉJÀ DIT :\n${situation}`,
+    derniereReponse && `TA RÉPONSE PRÉCÉDENTE (début) : ${derniereReponse}`,
+    `MA QUESTION : ${question}`,
+  ]
+    .filter(Boolean)
+    .join('\n\n');
   // Qwen3 peut « réfléchir à voix haute » entre balises <think> : on ne montre que la réponse.
   const nettoyer = (t: string) => t.replace(/<think>[\s\S]*?(<\/think>|$)/g, '').trimStart();
 
   const generer = async (jinja: boolean) => {
     let cumul = '';
+    let ecrit = false;
+    onPhase?.('lecture');
     const res = await contexte!.completion(
       {
         messages: [
           { role: 'system', content: systeme },
-          ...recents,
           // Sans modèle de dialogue Jinja, « /no_think » coupe la réflexion de Qwen3.
-          { role: 'user', content: jinja ? question : `${question} /no_think` },
+          { role: 'user', content: jinja ? demande : `${demande} /no_think` },
         ],
-        n_predict: 600,
+        n_predict: 400,
         temperature: 0.3,
         top_p: 0.9,
         jinja,
         ...(jinja ? { enable_thinking: false } : {}),
       },
       (d) => {
+        if (!ecrit) {
+          ecrit = true;
+          onPhase?.('ecriture');
+        }
         // `content` = texte cumulé, nettoyé de la réflexion ; repli sur l'accumulation des tokens.
         cumul = jinja && d.content !== undefined ? d.content : cumul + d.token;
         onTexte(nettoyer(cumul));
@@ -138,6 +152,36 @@ export async function repondre(
       throw new Error(`Génération impossible : ${message(e2)} (premier essai : ${message(e)})`);
     }
   }
+}
+
+/** Diagnostic : temps de chargement, délai avant le premier mot, vitesse d'écriture. */
+export async function tester(m: Modele) {
+  const t0 = Date.now();
+  await charger(m);
+  const chargementMs = Date.now() - t0;
+  const t1 = Date.now();
+  let premierMs: number | null = null;
+  let mots = 0;
+  const res = await contexte!.completion(
+    {
+      messages: [{ role: 'user', content: 'Dis bonjour en une phrase courte.' }],
+      n_predict: 40,
+      temperature: 0.3,
+      enable_thinking: false,
+    },
+    () => {
+      if (premierMs === null) premierMs = Date.now() - t1;
+      mots += 1;
+    },
+  );
+  const totalMs = Date.now() - t1;
+  const ecritureMs = Math.max(1, totalMs - (premierMs ?? 0));
+  return {
+    chargementMs,
+    premierMs: premierMs ?? totalMs,
+    motsParSeconde: Math.round((mots / ecritureMs) * 10000) / 10,
+    texte: (res.content || res.text || '').replace(/<think>[\s\S]*?(<\/think>|$)/g, '').trim(),
+  };
 }
 
 export async function arreter() {

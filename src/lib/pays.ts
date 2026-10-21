@@ -49,3 +49,8 @@ export function resumePays(p: Pays = paysActuel()) {
     .filter(Boolean)
     .join('\n');
 }
+
+/** Version très courte pour l'IA : chaque mot de consigne ralentit la réponse sur un téléphone. */
+export function resumePaysCourt(p: Pays = paysActuel()) {
+  return `Pays : ${p.nom}. Urgence 112, ambulance ${p.ambulance}, police ${p.police}, pompiers ${p.pompiers}, intoxication ${p.antipoison}, écoute ${p.aidePsy}.`;
+}

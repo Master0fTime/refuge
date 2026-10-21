@@ -4,6 +4,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Reflexion, type Etape as EtapeReflexion } from '@/components/Reflexion';
+import { TexteRiche } from '@/components/TexteRiche';
 import { Bouton, Carte, Texte } from '@/components/ui';
 import { detecter, type Alerte } from '@/lib/ia/garde-fous';
 import { estInstalle, MODELES } from '@/lib/ia/modeles';
@@ -30,6 +32,7 @@ export default function Demander() {
   const [bulles, setBulles] = useState<Bulle[]>([]);
   const [q, setQ] = useState('');
   const [etat, setEtat] = useState<Etat>('libre');
+  const [etape, setEtape] = useState<EtapeReflexion>('chargement');
   const [iaDispo, setIaDispo] = useState<boolean | null>(null);
   const [voixDispo, setVoixDispo] = useState<boolean | null>(null);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
@@ -74,7 +77,7 @@ export default function Demander() {
       .slice(-2)
       .map((b) => b.texte)
       .join(' ');
-    const sources = chercher(`${question} ${derniers}`, 4);
+    const sources = chercher(question, 4, derniers);
     const alertes = detecter(question);
     const historique: Message[] = bulles.filter((b) => !b.sansIA).map((b) => ({ role: b.role, content: b.texte }));
     setBulles((b) => [...b, { role: 'user', texte: question }, { role: 'assistant', texte: '', sources, alertes, sansIA: !iaDispo }]);
@@ -91,9 +94,10 @@ export default function Demander() {
 
     try {
       setEtat('chargement');
+      setEtape('chargement');
       await charger(modele);
       setEtat('reponse');
-      const finale = (await repondre(question, sources, historique, (t) => majDerniere({ texte: t }))).trim();
+      const finale = (await repondre(question, sources, historique, (t) => majDerniere({ texte: t }), (p) => setEtape(p))).trim();
       majDerniere({ texte: finale });
       // Question posée à voix haute : la réponse est lue à voix haute (mains et yeux libres).
       if (parVoix) lireReponse(finale);
@@ -177,7 +181,13 @@ export default function Demander() {
                 </Pressable>
               ))}
               <Carte>
-                <Texte>{b.texte || (etat === 'chargement' ? 'Démarrage de l’IA… (quelques secondes)' : '…')}</Texte>
+                {b.texte ? (
+                  <TexteRiche texte={b.texte} />
+                ) : i === bulles.length - 1 && (etat === 'chargement' || etat === 'reponse') ? (
+                  <Reflexion etape={etape} modeleLent={actif === 'avance'} />
+                ) : (
+                  <Texte muted>…</Texte>
+                )}
                 {!!b.texte && !(etat === 'reponse' && i === bulles.length - 1) && (
                   <Pressable onPress={() => lireReponse(b.texte)} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' }}>
                     <Ionicons name="volume-high" size={20} color={c.info} />

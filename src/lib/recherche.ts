@@ -48,15 +48,15 @@ function indexer() {
   indexePour = paysActuel().code;
 }
 
-// Mots trop courants pour aider la recherche.
+// Mots trop courants (ou de politesse) pour aider la recherche.
 const VIDES = new Set(
-  'le la les un une des de du d l et ou a au aux en dans sur sous pour par avec sans ce cet cette ces je tu il elle on nous vous ils elles me te se mon ma mes ton ta tes son sa ses est suis es sont ai as avez ont que qui quoi comment quand pourquoi faire fait peut peux veux dois faut pas ne plus tres trop si y'.split(
+  'le la les un une des de du d l et ou a au aux en dans sur sous pour par avec sans ce cet cette ces je tu il elle on nous vous ils elles me te se mon ma mes ton ta tes son sa ses est suis es sont ai as avez ont que qui quoi comment quand pourquoi faire fait peut peux veux dois faut pas ne plus tres trop si y aide aider moi toi sais sait savoir besoin vais va salut bonjour alors explique voila juste rien chose truc'.split(
     ' ',
   ),
 );
 
 /** Variante sans accents ni pluriel simple, pour être tolérant aux fautes de frappe courantes. */
-function motsCles(q: string) {
+export function motsCles(q: string) {
   return q
     .toLowerCase()
     .normalize('NFD')
@@ -66,26 +66,148 @@ function motsCles(q: string) {
     .map((m) => (m.length > 4 ? m.replace(/(s|x)$/, '') : m));
 }
 
+// Synonymes : les mots de tous les jours vers ceux des fiches.
+const SYNONYMES: Record<string, string[]> = {
+  incendie: ['feu', 'fumee', 'flamme'],
+  feu: ['incendie', 'flamme'],
+  fumee: ['incendie', 'monoxyde'],
+  brule: ['brulure', 'incendie'],
+  gaz: ['fuite', 'odeur'],
+  coeur: ['cardiaque', 'infarctus', 'poitrine'],
+  poitrine: ['infarctus', 'cardiaque'],
+  infarctus: ['cardiaque', 'poitrine'],
+  avc: ['attaque', 'cerebrale', 'visage', 'parole'],
+  paralyse: ['avc'],
+  allergie: ['anaphylactique', 'gonflement'],
+  gonfle: ['allergie', 'anaphylactique'],
+  convulsion: ['epilepsie', 'crise'],
+  epilepsie: ['convulsion'],
+  diabete: ['hypoglycemie', 'sucre', 'insuline'],
+  asthme: ['respirer', 'inhalateur'],
+  serpent: ['vipere', 'morsure'],
+  vipere: ['serpent', 'morsure'],
+  guepe: ['piqure', 'abeille'],
+  tique: ['piqure', 'lyme'],
+  chien: ['morsure'],
+  inondation: ['crue', 'eau'],
+  crue: ['inondation'],
+  seisme: ['tremblement', 'terre'],
+  tremblement: ['seisme'],
+  courant: ['electricite', 'blackout', 'panne'],
+  electricite: ['blackout', 'courant', 'electrisation'],
+  panne: ['blackout', 'courant'],
+  electrocute: ['electrisation', 'courant'],
+  tempete: ['orage', 'vent'],
+  orage: ['tempete', 'foudre'],
+  nucleaire: ['radioactivite', 'iode'],
+  chimique: ['toxique', 'nuage'],
+  attentat: ['attaque', 'echapper', 'cacher'],
+  terroriste: ['attentat', 'attaque'],
+  tir: ['tirs', 'attaque', 'balle'],
+  bombe: ['explosion', 'bombardement'],
+  explosion: ['bombardement', 'tirs', 'decombres'],
+  agression: ['violence', 'agresse'],
+  agresse: ['agression', 'violence'],
+  vole: ['agression'],
+  disparu: ['perdu', 'enfant'],
+  noye: ['noyade'],
+  empoisonne: ['intoxication', 'antipoison'],
+  champignon: ['intoxication'],
+  medicament: ['intoxication', 'traitement'],
+  fievre: ['temperature'],
+  evanoui: ['malaise', 'inconscient'],
+  malaise: ['evanouissement'],
+  tete: ['coup', 'crane'],
+  nez: ['saignement'],
+  oeil: ['yeux'],
+  yeux: ['oeil'],
+  angoisse: ['panique', 'peur'],
+  panique: ['peur', 'angoisse'],
+  faim: ['manger', 'nourriture'],
+  soif: ['eau', 'boire'],
+  froid: ['hypothermie', 'chaleur'],
+  chaud: ['chaleur', 'canicule'],
+};
+
+// Vocabulaire des fiches, pour corriger les fautes de frappe et de dictée (« ascendie » → « incendie »).
+let vocabulaire: string[] | null = null;
+function vocab() {
+  if (!vocabulaire) {
+    const tous = new Set<string>();
+    for (const f of FICHES) for (const m of motsCles(`${f.titre} ${texteFiche(f)}`)) if (m.length >= 5) tous.add(m);
+    vocabulaire = [...tous];
+  }
+  return vocabulaire;
+}
+
+function distance(a: string, b: string) {
+  const d: number[][] = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array<number>(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+
+function corriger(mot: string) {
+  const v = vocab();
+  if (mot.length < 5 || v.some((x) => x.startsWith(mot))) return mot;
+  let meilleur = mot;
+  let min = mot.length >= 7 ? 3 : 2;
+  for (const x of v) {
+    if (Math.abs(x.length - mot.length) > 2) continue;
+    const d = distance(mot, x);
+    if (d < min) {
+      min = d;
+      meilleur = x;
+    }
+  }
+  return meilleur;
+}
+
+/** Mots de la question, corrigés et enrichis de leurs synonymes. */
+export function termes(q: string) {
+  const out = new Set<string>();
+  for (const brut of motsCles(q)) {
+    const m = corriger(brut);
+    out.add(m);
+    for (const s of SYNONYMES[m] ?? []) out.add(s);
+  }
+  return [...out];
+}
+
 export type Resultat = { fiche: Fiche; extrait: string };
 
-export function chercher(q: string, limite = 8): Resultat[] {
-  const mots = motsCles(q);
-  if (!mots.length) return [];
+function requete(mots: string[], limite: number): Resultat[] {
+  // Préfixe (mot*) pour attraper « saign » → saignement, saigne… ; OR pour rester tolérant.
+  const match = mots.map((m) => `"${m}"*`).join(' OR ');
+  const lignes = db.getAllSync<{ id: string; extrait: string }>(
+    `SELECT id, snippet(fiches_fts, 2, '', '', '…', 16) AS extrait
+     FROM fiches_fts WHERE fiches_fts MATCH ?
+     ORDER BY bm25(fiches_fts, 0, 6.0, 1.0) LIMIT ?`,
+    match,
+    limite,
+  );
+  return lignes.flatMap((l) => {
+    const fiche = FICHES.find((f) => f.id === l.id);
+    return fiche ? [{ fiche, extrait: l.extrait }] : [];
+  });
+}
+
+/**
+ * Cherche d'abord avec la question seule. Le contexte (messages précédents) ne sert qu'à compléter
+ * une relance courte (« et si je n'ai pas de corde ? »), pour ne pas ramener d'anciens sujets.
+ */
+export function chercher(q: string, limite = 8, contexte = ''): Resultat[] {
+  const mots = termes(q);
   try {
     indexer();
-    // Préfixe (mot*) pour attraper « saign » → saignement, saigne… ; OR pour rester tolérant.
-    const match = mots.map((m) => `"${m}"*`).join(' OR ');
-    const lignes = db.getAllSync<{ id: string; extrait: string }>(
-      `SELECT id, snippet(fiches_fts, 2, '', '', '…', 16) AS extrait
-       FROM fiches_fts WHERE fiches_fts MATCH ?
-       ORDER BY bm25(fiches_fts, 0, 6.0, 1.0) LIMIT ?`,
-      match,
-      limite,
-    );
-    return lignes.flatMap((l) => {
-      const fiche = FICHES.find((f) => f.id === l.id);
-      return fiche ? [{ fiche, extrait: l.extrait }] : [];
-    });
+    let res = mots.length ? requete(mots, limite) : [];
+    if (contexte && (motsCles(q).length <= 3 || res.length < 2)) {
+      const vus = new Set(res.map((r) => r.fiche.id));
+      const plus = requete(termes(contexte), limite).filter((r) => !vus.has(r.fiche.id));
+      res = [...res, ...plus].slice(0, limite);
+    }
+    return res;
   } catch {
     // Repli sans SQLite (ne devrait pas arriver, mais l'appli ne doit jamais rester muette).
     return rechercherSimple(q)

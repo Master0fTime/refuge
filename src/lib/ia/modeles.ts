@@ -26,7 +26,7 @@ export const MODELES: Modele[] = [
   {
     id: 'standard',
     nom: 'Standard (Qwen3 1.7B)',
-    description: 'Le bon compromis pour la plupart des téléphones récents.',
+    description: 'Le bon compromis : rapide et fiable sur la plupart des téléphones. Conseillé.',
     fichier: 'Qwen3-1.7B-Q4_K_M.gguf',
     url: 'https://huggingface.co/unsloth/Qwen3-1.7B-GGUF/resolve/main/Qwen3-1.7B-Q4_K_M.gguf',
     octets: 1107409472,
@@ -35,11 +35,11 @@ export const MODELES: Modele[] = [
   {
     id: 'avance',
     nom: 'Avancé (Qwen3 4B)',
-    description: 'Meilleures réponses. Pour les téléphones haut de gamme (8 Go de mémoire ou plus).',
+    description: 'Réponses un peu meilleures mais 2 à 3 fois plus LENTES sur téléphone. Seulement pour les téléphones très puissants (12 Go de mémoire ou plus).',
     fichier: 'Qwen3-4B-Instruct-2507-Q4_K_M.gguf',
     url: 'https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q4_K_M.gguf',
     octets: 2497281120,
-    ramMinGo: 8,
+    ramMinGo: 12,
   },
 ];
 

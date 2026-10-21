@@ -3,6 +3,7 @@ import * as Speech from 'expo-speech';
 import { PermissionsAndroid, Platform } from 'react-native';
 import { initWhisper, type WhisperContext } from 'whisper.rn/index';
 import { chemin, estInstalle, ramGo, type Telechargeable } from '@/lib/ia/modeles';
+import { langueActuelle } from '@/lib/langue';
 import { KEYS, lire } from '@/lib/store';
 
 // Reconnaissance vocale 100 % hors ligne (whisper.cpp) et lecture des réponses à voix haute.
@@ -146,9 +147,10 @@ export async function arreterEtTranscrire(): Promise<string> {
 
   const ctx = await chargerWhisper();
   const { promise } = ctx.transcribeData(pcm.buffer, {
-    language: 'fr',
+    language: langueActuelle().code,
     maxThreads: 4,
-    prompt: 'Question en français sur la survie, les premiers secours, l’eau, le feu, la nourriture, la sécurité.',
+    // Le contexte aide Whisper à reconnaître le vocabulaire de survie (seulement en français pour l'instant).
+    ...(langueActuelle().code === 'fr' ? { prompt: 'Question sur la survie, les premiers secours, l’eau, le feu, la nourriture, la sécurité.' } : {}),
   });
   const { result } = await promise;
   // Whisper note parfois les bruits entre crochets, parenthèses ou astérisques : on les retire.
@@ -171,28 +173,34 @@ function volumeMax(pcm: Uint8Array) {
 export type ReglageVoix = { identifiant: string | null; vitesse: number };
 const REGLAGE_DEFAUT: ReglageVoix = { identifiant: null, vitesse: 1 };
 
-/** Voix françaises installées, les plus naturelles d'abord (hors ligne, qualité « Enhanced »). */
+/** Voix installées pour la langue choisie, les plus naturelles d'abord (hors ligne, qualité « Enhanced »). */
 export async function voixFrancaises(): Promise<Speech.Voice[]> {
+  const langue = langueActuelle().code;
   const toutes = await Speech.getAvailableVoicesAsync();
   const score = (v: Speech.Voice) =>
     (v.quality === Speech.VoiceQuality.Enhanced ? 4 : 0) +
     (/network/i.test(v.identifier) ? 0 : 2) + // les voix « network » demandent Internet
-    (/fr-(CH|FR)/i.test(v.language) ? 1 : 0);
-  return toutes.filter((v) => v.language.toLowerCase().startsWith('fr')).sort((a, b) => score(b) - score(a));
+    (/-(CH|FR|DE|IT|GB)/i.test(v.language) ? 1 : 0);
+  return toutes.filter((v) => v.language.toLowerCase().startsWith(langue)).sort((a, b) => score(b) - score(a));
 }
 
-let voixAuto: string | null | undefined;
-async function voixParDefaut() {
-  if (voixAuto === undefined) voixAuto = (await voixFrancaises())[0]?.identifier ?? null;
-  return voixAuto;
+// Liste des voix par langue, gardée en mémoire (la demander au système est lent).
+const cache: Record<string, string[]> = {};
+async function voixDeLaLangue() {
+  const l = langueActuelle().code;
+  if (!cache[l]) cache[l] = (await voixFrancaises()).map((v) => v.identifier);
+  return cache[l];
 }
 
 /** Parle avec la voix choisie dans les réglages (ou la plus naturelle disponible). */
 export async function dire(texte: string, options: { lent?: boolean } = {}) {
   const r = lire<ReglageVoix>(KEYS.voix, REGLAGE_DEFAUT);
-  const voice = r.identifiant ?? (await voixParDefaut()) ?? undefined;
+  const langue = langueActuelle();
+  const dispo = await voixDeLaLangue();
+  // Une voix choisie pour une autre langue est ignorée : on prend la plus naturelle de la langue.
+  const voice = (r.identifiant && dispo.includes(r.identifiant) ? r.identifiant : dispo[0]) ?? undefined;
   Speech.stop();
-  Speech.speak(texte, { language: 'fr-FR', voice, rate: r.vitesse * (options.lent ? 0.9 : 1), pitch: 1 });
+  Speech.speak(texte, { language: langue.voix, voice, rate: r.vitesse * (options.lent ? 0.9 : 1), pitch: 1 });
 }
 
 export function lireReponse(texte: string) {

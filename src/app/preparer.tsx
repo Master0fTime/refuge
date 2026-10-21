@@ -9,6 +9,7 @@ import { espaceLibre, finaliser, formatTaille, MODELES, preparerDossier, telecha
 import { redemarrer, verifierMaj, type EtatMaj } from '@/lib/maj';
 import { tailleEstimee, telechargerZone, zonePays } from '@/lib/cartes';
 import { packPret, packs, type Pack } from '@/lib/packs';
+import { useLangue } from '@/lib/langue';
 import { usePays } from '@/lib/pays';
 import { KEYS, useStored } from '@/lib/store';
 import { c, space } from '@/lib/theme';
@@ -18,6 +19,7 @@ export default function Preparer() {
   const [actif, setActif] = useStored<string | null>(KEYS.modele, null);
   const liste = packs();
   const [pays] = usePays();
+  const [langue] = useLangue();
   const [prets, setPrets] = useState<Record<string, boolean>>({});
   const [progres, setProgres] = useState<Record<string, number>>({});
   const [enCours, setEnCours] = useState<string | null>(null);
@@ -99,7 +101,12 @@ Réessaie depuis l’onglet Carte.`);
           : 'À faire UNE FOIS, maintenant, pendant qu’Internet fonctionne. Ensuite, tout marche hors ligne.'}
       </Texte>
 
-      <Ligne titre={`Pays : ${pays.drapeau} ${pays.nom}`} sous="Numéros d’urgence, alertes et radios adaptés. Touche pour changer." icone="flag" onPress={() => router.push('/pays')} />
+      <Ligne
+        titre={`Pays : ${pays.drapeau} ${pays.nom} · Langue : ${langue.drapeau} ${langue.nom}`}
+        sous="Numéros d’urgence, alertes, langue de l’IA et de la voix. Touche pour changer."
+        icone="flag"
+        onPress={() => router.push('/pays')}
+      />
 
       {liste.map((p) => (
         <LignePack key={p.id} p={p} pret={!!prets[p.id]} progres={progres[p.id]} actif={enCours === p.id} taille={p.id === 'cartes' ? tailleEstimee(zonePays(pays)) : p.fichier?.octets} />
