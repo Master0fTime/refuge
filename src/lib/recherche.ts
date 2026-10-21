@@ -1,5 +1,6 @@
 import { openDatabaseSync } from 'expo-sqlite';
 import { FICHES, rechercher as rechercherSimple, type Fiche } from '@/data/fiches';
+import { localiser, paysActuel } from '@/lib/pays';
 
 // Index plein texte (SQLite FTS5) de toutes les fiches, reconstruit quand le contenu change.
 // C'est aussi la « mémoire » dans laquelle l'IA locale pioche (RAG).
@@ -7,25 +8,28 @@ import { FICHES, rechercher as rechercherSimple, type Fiche } from '@/data/fiche
 const db = openDatabaseSync('savoir.db');
 
 export const texteFiche = (f: Fiche) =>
-  [
-    f.resume,
-    ...(f.choix ?? []).map((c) => c.label),
-    ...(f.etapes ?? []),
-    ...(f.attention ?? []).map((a) => `Attention : ${a}`),
-    ...(f.ensuite ?? []).map((a) => `Ensuite : ${a}`),
-  ].join('\n');
+  localiser(
+    [
+      f.resume,
+      ...(f.choix ?? []).map((c) => c.label),
+      ...(f.etapes ?? []),
+      ...(f.sansSecours ?? []).map((a) => `Si personne ne peut venir (secours injoignables) : ${a}`),
+      ...(f.attention ?? []).map((a) => `Attention : ${a}`),
+      ...(f.ensuite ?? []).map((a) => `Ensuite : ${a}`),
+    ].join('\n'),
+  );
 
-// Empreinte du contenu : si une fiche change, l'index est reconstruit au lancement.
+// Empreinte du contenu et du pays : si une fiche ou le pays change, l'index est reconstruit.
 function empreinte() {
   let h = 0;
-  const s = FICHES.map((f) => f.id + f.titre + texteFiche(f)).join('|');
+  const s = paysActuel().code + FICHES.map((f) => f.id + f.titre + texteFiche(f)).join('|');
   for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
   return String(h);
 }
 
-let pret = false;
+let indexePour: string | null = null;
 function indexer() {
-  if (pret) return;
+  if (indexePour === paysActuel().code) return;
   db.execSync(`
     CREATE TABLE IF NOT EXISTS meta (cle TEXT PRIMARY KEY, valeur TEXT);
     CREATE VIRTUAL TABLE IF NOT EXISTS fiches_fts USING fts5(
@@ -41,7 +45,7 @@ function indexer() {
       db.runSync('INSERT OR REPLACE INTO meta (cle, valeur) VALUES (?, ?)', 'empreinte', e);
     });
   }
-  pret = true;
+  indexePour = paysActuel().code;
 }
 
 // Mots trop courants pour aider la recherche.

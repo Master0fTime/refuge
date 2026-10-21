@@ -162,9 +162,9 @@ export default function Demander() {
               {b.alertes?.map((a) => (
                 <Pressable
                   key={a.label}
-                  onPress={() => (a.fiche ? router.push(`/fiche/${a.fiche}`) : a.tel && Linking.openURL(`tel:${a.tel}`))}
+                  onPress={() => (a.route ? router.push(a.route) : a.fiche ? router.push(`/fiche/${a.fiche}`) : a.tel && Linking.openURL(`tel:${a.tel}`))}
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.danger, borderRadius: 12, padding: space.md }}>
-                  <Ionicons name={a.fiche ? 'heart' : 'call'} size={22} color="#000" />
+                  <Ionicons name={a.route ? 'leaf' : a.fiche ? 'heart' : 'call'} size={22} color="#000" />
                   <Text style={{ color: '#000', fontWeight: '800', fontSize: 16, flex: 1 }}>{a.label}</Text>
                   <Ionicons name="chevron-forward" size={20} color="#000" />
                 </Pressable>

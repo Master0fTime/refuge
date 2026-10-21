@@ -6,6 +6,7 @@ import { Bouton, Carte, Ecran, Ligne, Sous, Texte } from '@/components/ui';
 import { FICHES } from '@/data/fiches';
 import { redemarrer } from '@/lib/maj';
 import { telephonePret } from '@/lib/packs';
+import { usePays } from '@/lib/pays';
 import { useStored } from '@/lib/store';
 import { c } from '@/lib/theme';
 
@@ -14,6 +15,7 @@ export default function Urgence() {
   const [pret, setPret] = useState<boolean | null>(null);
   const [accueilVu, setAccueilVu] = useStored<boolean>('accueilVu', false);
   const { isUpdatePending } = useUpdates();
+  const [pays] = usePays();
 
   useFocusEffect(
     useCallback(() => {
@@ -46,6 +48,7 @@ export default function Urgence() {
 
       <Bouton label="Que se passe-t-il ?" icone="help-buoy" grand onPress={() => router.push('/guide')} />
       <Texte muted>Réponds à 2 ou 3 questions : l’appli te donne les bons réflexes selon l’endroit où tu es.</Texte>
+      <Bouton label="J’ai peur, je panique" icone="heart-circle" couleur="#2dd4bf" onPress={() => router.push('/panique')} />
 
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <View style={{ flex: 3 }}>
@@ -61,7 +64,7 @@ export default function Urgence() {
           <Bouton label="Appeler le 112" icone="call" couleur={c.danger} onPress={() => Linking.openURL('tel:112')} />
         </View>
         <View style={{ flex: 1 }}>
-          <Bouton label="SMS 114" icone="chatbubble" discret onPress={() => Linking.openURL('sms:114')} />
+          <Bouton label={`Numéros ${pays.drapeau}`} icone="list" discret onPress={() => router.push('/pays')} />
         </View>
       </View>
 
@@ -74,6 +77,7 @@ export default function Urgence() {
       <Ligne titre="Mon groupe et nos points de ralliement" icone="people" onPress={() => router.push('/groupe')} />
       <Ligne titre="Ma carte de vie" sous="Groupe sanguin, allergies, contacts" icone="id-card" onPress={() => router.push('/moi')} />
       <Ligne titre="Lampe, SOS, boussole, GPS" icone="flashlight" onPress={() => router.push('/outils')} />
+      <Ligne titre="Partager Refuge sans Internet" sous="Wi-Fi local + QR code, sans tes données privées" icone="share-social" onPress={() => router.push('/partager')} />
       <Ligne
         titre="Téléchargements et mises à jour"
         sous={pret ? 'Téléphone prêt ✓' : 'IA, voix, contenus hors ligne'}

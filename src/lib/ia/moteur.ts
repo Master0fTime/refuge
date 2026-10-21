@@ -1,5 +1,6 @@
 import { initLlama, type LlamaContext } from 'llama.rn';
 import type { Resultat } from '@/lib/recherche';
+import { resumePays } from '@/lib/pays';
 import { texteFiche } from '@/lib/recherche';
 import { chemin, type Modele } from './modeles';
 
@@ -45,6 +46,7 @@ Sources et prudence :
 - Pour une question générale (hors survie), ou si les sources ne suffisent pas, tu peux utiliser tes connaissances, mais dis-le (« d'après mes connaissances générales, à vérifier »).
 - Ne donne jamais de dose de médicament, de plante ou de champignon à manger, ni de geste médical qui ne figure pas dans les sources.
 - Urgence vitale : commence par « Appelle le 112 si tu peux » et renvoie vers la fiche concernée.
+- Si les secours sont injoignables ou ne viendront pas (guerre, catastrophe, plus de réseau), ne te contente pas de dire « appelle les secours » : utilise les consignes « Si personne ne peut venir » des sources et aide la personne à tenir dans la durée.
 - Ne donne aucune aide pour blesser quelqu'un. Face à un danger, privilégie l'évitement, la discrétion et l'éloignement.
 
 Forme : français simple, tutoiement, phrases courtes, entre 120 et 250 mots. Pas de titres ni de gras.`;
@@ -85,7 +87,7 @@ export async function repondre(
       messages: [
         {
           role: 'system',
-          content: `${SYSTEME}\n\nSOURCES :\n${contexteFiches(sources) || '(aucune source trouvée)'}${
+          content: `${SYSTEME}\n\n${resumePays()}\n\nSOURCES :\n${contexteFiches(sources) || '(aucune source trouvée)'}${
             situation ? `\n\nCE QUE LA PERSONNE A DÉJÀ DIT :\n${situation}` : ''
           }`,
         },

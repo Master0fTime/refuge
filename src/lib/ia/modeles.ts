@@ -43,8 +43,25 @@ export const MODELES: Modele[] = [
   },
 ];
 
-export const DOSSIER = `${FS.documentDirectory}modeles/`;
+/**
+ * Dossier servi lors du partage hors ligne. Il ne contient QUE ce qui peut être transmis (packs, page
+ * d'accueil) : les données privées (carte de vie, groupes, base SQLite) sont stockées ailleurs.
+ */
+export const DOSSIER_PARTAGE = `${FS.documentDirectory}partage/`;
+export const DOSSIER = `${DOSSIER_PARTAGE}modeles/`;
 export const chemin = (m: Telechargeable) => DOSSIER + m.fichier;
+
+/** v0.2-0.3 rangeaient les modèles dans `modeles/` : on les déplace dans le dossier de partage. */
+export async function migrerAncienDossier() {
+  const ancien = `${FS.documentDirectory}modeles/`;
+  const info = await FS.getInfoAsync(ancien);
+  if (!info.exists) return;
+  await preparerDossier();
+  for (const f of await FS.readDirectoryAsync(ancien)) {
+    await FS.moveAsync({ from: ancien + f, to: DOSSIER + f });
+  }
+  await FS.deleteAsync(ancien, { idempotent: true });
+}
 
 export const ramGo = () => (Device.totalMemory ? Device.totalMemory / 1024 ** 3 : null);
 

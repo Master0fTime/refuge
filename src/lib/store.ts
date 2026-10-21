@@ -5,6 +5,9 @@ import Storage from 'expo-sqlite/kv-store';
 const cache = new Map<string, unknown>();
 const listeners = new Map<string, Set<() => void>>();
 
+/** Lecture hors composant (fonctions de texte, IA…). */
+export const lire = <T,>(key: string, initial: T): T => read(key, initial);
+
 function read<T>(key: string, initial: T): T {
   if (!cache.has(key)) {
     const raw = Storage.getItemSync(key);
@@ -41,4 +44,5 @@ export const KEYS = {
   contacts: 'contacts',
   groupes: 'groupes',
   modele: 'modele',
+  pays: 'pays',
 } as const;

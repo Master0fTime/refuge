@@ -4,10 +4,11 @@ import * as Network from 'expo-network';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
-import { Bouton, Carte, Ecran, Sous, Texte, Titre } from '@/components/ui';
+import { Bouton, Carte, Ecran, Ligne, Sous, Texte, Titre } from '@/components/ui';
 import { espaceLibre, finaliser, formatTaille, MODELES, preparerDossier, telecharger } from '@/lib/ia/modeles';
 import { redemarrer, verifierMaj, type EtatMaj } from '@/lib/maj';
 import { packPret, packs, type Pack } from '@/lib/packs';
+import { usePays } from '@/lib/pays';
 import { KEYS, useStored } from '@/lib/store';
 import { c, space } from '@/lib/theme';
 
@@ -15,6 +16,7 @@ export default function Preparer() {
   useKeepAwake(); // l'écran ne doit pas s'éteindre pendant un long téléchargement
   const [actif, setActif] = useStored<string | null>(KEYS.modele, null);
   const liste = packs();
+  const [pays] = usePays();
   const [prets, setPrets] = useState<Record<string, boolean>>({});
   const [progres, setProgres] = useState<Record<string, number>>({});
   const [enCours, setEnCours] = useState<string | null>(null);
@@ -86,6 +88,8 @@ export default function Preparer() {
           : 'À faire UNE FOIS, maintenant, pendant qu’Internet fonctionne. Ensuite, tout marche hors ligne.'}
       </Texte>
 
+      <Ligne titre={`Pays : ${pays.drapeau} ${pays.nom}`} sous="Numéros d’urgence, alertes et radios adaptés. Touche pour changer." icone="flag" onPress={() => router.push('/pays')} />
+
       {liste.map((p) => (
         <LignePack key={p.id} p={p} pret={!!prets[p.id]} progres={progres[p.id]} actif={enCours === p.id} />
       ))}
@@ -104,6 +108,10 @@ export default function Preparer() {
           </Texte>
         </>
       )}
+
+      <Sous>Sans Internet</Sous>
+      <Bouton label="Récupérer depuis un proche" icone="phone-portrait" discret onPress={() => router.push('/recevoir')} />
+      <Bouton label="Partager Refuge à mes proches" icone="share-social" discret onPress={() => router.push('/partager')} />
 
       <Sous>Mises à jour</Sous>
       <Carte>

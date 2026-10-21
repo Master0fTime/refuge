@@ -1,11 +1,14 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Carte, Ecran, Ligne, Sous, Texte, Titre } from '@/components/ui';
 import { CATEGORIES, fiche } from '@/data/fiches';
+import { localiser, usePays } from '@/lib/pays';
 import { c } from '@/lib/theme';
 
 export default function FicheEcran() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const f = fiche(id);
+  const [pays] = usePays();
+  const L = (t: string) => localiser(t, pays);
   if (!f) {
     return (
       <Ecran>
@@ -19,10 +22,10 @@ export default function FicheEcran() {
     <Ecran>
       <Stack.Screen options={{ title: cat?.nom ?? '' }} />
       <Titre>{f.titre}</Titre>
-      <Texte muted>{f.resume}</Texte>
+      <Texte muted>{L(f.resume)}</Texte>
 
       {f.choix?.map((ch) => (
-        <Ligne key={ch.fiche} titre={ch.label} icone="arrow-forward-circle" couleur={cat?.couleur} onPress={() => router.push(`/fiche/${ch.fiche}`)} />
+        <Ligne key={ch.fiche} titre={L(ch.label)} icone="arrow-forward-circle" couleur={cat?.couleur} onPress={() => router.push(`/fiche/${ch.fiche}`)} />
       ))}
 
       {f.etapes && (
@@ -30,10 +33,21 @@ export default function FicheEcran() {
           {f.etapes.map((e, i) => (
             <Texte key={i}>
               <Texte muted>{i + 1}. </Texte>
-              {e}
+              {L(e)}
             </Texte>
           ))}
         </Carte>
+      )}
+
+      {f.sansSecours && (
+        <>
+          <Sous>Si personne ne peut venir</Sous>
+          <Carte couleur={c.accent}>
+            {f.sansSecours.map((a, i) => (
+              <Texte key={i}>• {L(a)}</Texte>
+            ))}
+          </Carte>
+        </>
       )}
 
       {f.attention && (
@@ -41,7 +55,7 @@ export default function FicheEcran() {
           <Sous>Attention</Sous>
           <Carte couleur={c.danger}>
             {f.attention.map((a, i) => (
-              <Texte key={i}>⚠ {a}</Texte>
+              <Texte key={i}>⚠ {L(a)}</Texte>
             ))}
           </Carte>
         </>
@@ -52,7 +66,7 @@ export default function FicheEcran() {
           <Sous>Ensuite</Sous>
           <Carte>
             {f.ensuite.map((a, i) => (
-              <Texte key={i}>• {a}</Texte>
+              <Texte key={i}>• {L(a)}</Texte>
             ))}
           </Carte>
         </>

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Bouton, Carte, Ecran, Ligne, Sous, Texte, Titre } from '@/components/ui';
 import { fiche } from '@/data/fiches';
 import { conseilsPour, LIEUX, PROBLEMES, type LieuId, type Probleme } from '@/data/guide';
+import { localiser } from '@/lib/pays';
 import { c } from '@/lib/theme';
 
 export default function Guide() {
@@ -70,7 +71,7 @@ export default function Guide() {
       <Sous>Tout de suite</Sous>
       <Carte couleur={c.danger}>
         {r.immediat.map((t, i) => (
-          <Texte key={i}>• {t}</Texte>
+          <Texte key={i}>• {localiser(t)}</Texte>
         ))}
       </Carte>
 
@@ -79,7 +80,7 @@ export default function Guide() {
           <Sous>Ensuite</Sous>
           <Carte couleur={c.accent}>
             {r.ensuite.map((t, i) => (
-              <Texte key={i}>• {t}</Texte>
+              <Texte key={i}>• {localiser(t)}</Texte>
             ))}
           </Carte>
         </>

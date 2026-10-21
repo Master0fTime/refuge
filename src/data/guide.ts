@@ -41,13 +41,16 @@ export const PROBLEMES: Probleme[] = [
         { label: 'Ne répond pas mais respire', fiche: 'pls' },
         { label: 'S’étouffe, ne peut plus parler', fiche: 'etouffement' },
         { label: 'Brûlure', fiche: 'brulure' },
+        { label: 'Plusieurs blessés à la fois', fiche: 'tri-victimes' },
+        { label: 'Os cassé, entorse', fiche: 'fracture' },
+        { label: 'Accouchement qui commence', fiche: 'accouchement' },
         { label: 'Autre blessure (coupure, chute…)' },
       ],
     },
     commun: {
       immediat: [
         'Te protéger d’abord : s’il y a un danger (circulation, feu, chute de pierres), écarte-le ou éloigne la victime seulement si c’est indispensable.',
-        'Appeler le 112 (ou le 15). Si ça ne passe pas : SMS au 114, ou réessayer depuis un point plus haut.',
+        'Appeler le {secours}. Si ça ne passe pas : {smsOu}réessayer depuis un point plus haut.',
         'Parler à la victime, la rassurer, ne pas lui donner à boire si elle risque d’être opérée.',
         'Ne pas bouger une personne tombée de haut qui a mal au dos ou au cou, sauf danger immédiat.',
       ],
@@ -212,7 +215,7 @@ export const PROBLEMES: Probleme[] = [
     lieux: {
       ville: {
         immediat: [
-          'Cherche l’aide organisée : mairie, Croix-Rouge, Restos du Cœur, Secours populaire, lieux de culte. Écoute la radio locale pour les points de distribution.',
+          'Cherche l’aide organisée : commune, {orgsAide}, lieux de culte. Écoute la radio ({radios}) pour les points de distribution.',
           'Demande aux voisins et aux commerçants du quartier, en proposant un échange ou ton aide.',
         ],
         ensuite: ['Évite les attroupements devant les magasins en période de troubles.'],
@@ -249,6 +252,7 @@ export const PROBLEMES: Probleme[] = [
       question: 'Quel type ?',
       options: [
         { label: 'Séisme' },
+        { label: 'Quelqu’un est coincé sous des décombres', fiche: 'decombres' },
         { label: 'Inondation / eau qui monte' },
         { label: 'Incendie / feu de forêt' },
         { label: 'Alerte nucléaire ou chimique' },
@@ -259,7 +263,7 @@ export const PROBLEMES: Probleme[] = [
     },
     commun: {
       immediat: [
-        'Écouter la radio (France Inter, France Bleu/Ici) et suivre les consignes officielles (FR-Alert sur le téléphone).',
+        'Écouter la radio ({radios}) et suivre les consignes officielles ({alerteApp}).',
         'Ne pas aller chercher les enfants à l’école : les écoles ont un plan de mise en sûreté.',
         'Ne pas téléphoner, sauf urgence vitale : SMS uniquement, pour ne pas saturer le réseau.',
       ],
@@ -293,7 +297,7 @@ export const PROBLEMES: Probleme[] = [
     commun: {
       immediat: [
         'S’éloigner, se diriger vers un lieu fréquenté et éclairé.',
-        'Appeler le 17 ou le 112. Si tu ne peux pas parler : SMS au 114.',
+        'Appeler le {police} ou le 112. {smsSilencieux}',
         'Ne rien risquer pour des objets : donne ce qu’on te demande.',
       ],
       ensuite: ['Prévenir un proche de ta position (onglet Groupe → partager ma position).'],

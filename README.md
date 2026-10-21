@@ -52,6 +52,13 @@ PATH="/c/Windows/System32:$PATH" node node_modules/llama.rn/install/download-nat
 npx eas-cli@latest update --channel preview --message "Nouvelles fiches"
 ```
 
+## Partage sans Internet, pays, panique (v0.4)
+
+- Partage : `modules/partage-local` (module Android local) crée un Wi-Fi local (LocalOnlyHotspot) et lance un petit serveur HTTP. Ce serveur ne sert QUE `documentDirectory/partage/` (packs, page d'accueil, catalogue) et l'APK installé. Les données privées (SQLite) ne sont pas accessibles. Côté app : `src/lib/partage-hors-ligne.ts`, `src/app/partager.tsx`, `src/app/recevoir.tsx`.
+- Pays : `src/data/pays.ts` couvre la Suisse (par défaut), la France, l'Allemagne, l'Italie, l'Autriche et le Liechtenstein. Les fiches utilisent des variables (`{secours}`, `{police}`, `{aidePsy}`…) remplacées par `localiser()` (`src/lib/pays.ts`). L'IA reçoit aussi le résumé du pays.
+- Mode « Je panique » : `src/app/panique.tsx` (respiration guidée, vibrations, voix, ancrage, puis questions une à une).
+- Fiches : section `sansSecours` (« Si personne ne peut venir ») sur les urgences vitales.
+
 ## Structure
 
 - `src/app/` : écrans (Expo Router)

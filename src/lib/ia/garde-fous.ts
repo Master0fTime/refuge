@@ -1,7 +1,10 @@
 // Détection des urgences vitales dans une question : on affiche les fiches fixes et les numéros
 // AVANT et INDÉPENDAMMENT de l'IA, qui peut se tromper ou être lente.
 
-export type Alerte = { label: string; fiche?: string; tel?: string };
+import { localiser } from '@/lib/pays';
+
+// Libellés et numéros contiennent des variables ({secours}, {police}…) remplacées selon le pays.
+export type Alerte = { label: string; fiche?: string; tel?: string; route?: '/panique' };
 
 const REGLES: { motif: RegExp; alerte: Alerte }[] = [
   { motif: /saign|hemorrag|pisse le sang|perd (beaucoup de|du) sang|coupure profonde|artere/, alerte: { label: 'Saignement abondant', fiche: 'hemorragie' } },
@@ -12,10 +15,11 @@ const REGLES: { motif: RegExp; alerte: Alerte }[] = [
   { motif: /hypotherm|gele|grelott|congel/, alerte: { label: 'Froid extrême', fiche: 'hypothermie' } },
   { motif: /coup de chaleur|insolation/, alerte: { label: 'Coup de chaleur', fiche: 'coup-chaleur' } },
   { motif: /noy/, alerte: { label: 'Noyade : ne respire pas ?', fiche: 'rcp' } },
-  { motif: /avc|paralys|bouche de travers|parle mal d.?un coup/, alerte: { label: 'Signes d’AVC : appeler le 15 / 112 immédiatement', tel: '112' } },
-  { motif: /overdose|empoison|intoxi|champignon|monoxyde/, alerte: { label: 'Intoxication : centre antipoison ou 15', tel: '15' } },
-  { motif: /suicid|me tuer|en finir|plus envie de vivre/, alerte: { label: 'Tu n’es pas seul·e : 3114 (24 h/24, gratuit)', tel: '3114' } },
-  { motif: /violen|agress|frappe|menace/, alerte: { label: 'Danger : 17 ou 112 (SMS au 114 si tu ne peux pas parler)', tel: '17' } },
+  { motif: /avc|paralys|bouche de travers|parle mal d.?un coup/, alerte: { label: 'Signes d’AVC : appeler le {secours} immédiatement', tel: '{ambulance}' } },
+  { motif: /overdose|empoison|intoxi|champignon|monoxyde/, alerte: { label: 'Intoxication : {antipoisonNom} ({antipoison})', tel: '{antipoison}' } },
+  { motif: /panique|angoiss|j.?ai (tres |trop )?peur|terrifi|j.?arrive (plus|pas) a respirer|coeur (bat|tape) (trop )?(vite|fort)/, alerte: { label: 'Tu paniques ? Respire avec moi', route: '/panique' } },
+  { motif: /suicid|me tuer|en finir|plus envie de vivre/, alerte: { label: 'Tu n’es pas seul·e : {aidePsyNom}, {aidePsy}', tel: '{aidePsy}' } },
+  { motif: /violen|agress|frappe|menace/, alerte: { label: 'Danger : {police} ou 112. {smsSilencieux}', tel: '{police}' } },
 ];
 
 export function detecter(q: string): Alerte[] {
@@ -29,5 +33,5 @@ export function detecter(q: string): Alerte[] {
     if (!motif.test(t) || vues.has(cle)) return false;
     vues.add(cle);
     return true;
-  }).map((r) => r.alerte);
+  }).map(({ alerte: a }) => ({ ...a, label: localiser(a.label), tel: a.tel && localiser(a.tel).replace(/\s/g, '') }));
 }
