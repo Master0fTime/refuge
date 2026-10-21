@@ -17,7 +17,7 @@ const REGLES: { motif: RegExp; alerte: Alerte }[] = [
   { motif: /noy/, alerte: { label: 'Noyade : ne respire pas ?', fiche: 'rcp' } },
   { motif: /avc|paralys|bouche de travers|parle mal d.?un coup/, alerte: { label: 'Signes d’AVC : appeler le {secours} immédiatement', tel: '{ambulance}' } },
   { motif: /overdose|empoison|intoxi|champignon|monoxyde/, alerte: { label: 'Intoxication : {antipoisonNom} ({antipoison})', tel: '{antipoison}' } },
-  { motif: /panique|angoiss|j.?ai (tres |trop )?peur|terrifi|j.?arrive (plus|pas) a respirer|coeur (bat|tape) (trop )?(vite|fort)/, alerte: { label: 'Tu paniques ? Respire avec moi', route: '/panique' } },
+  { motif: /panique|angoiss|j.?ai (tres |trop )?peur|terrifi|j.?arrive (plus|pas) a respirer|coeur (bat|tape) (trop )?(vite|fort)/, alerte: { label: 'Besoin d’aide pour faire face ? Mode « Je panique »', route: '/panique' } },
   { motif: /suicid|me tuer|en finir|plus envie de vivre/, alerte: { label: 'Tu n’es pas seul·e : {aidePsyNom}, {aidePsy}', tel: '{aidePsy}' } },
   { motif: /violen|agress|frappe|menace/, alerte: { label: 'Danger : {police} ou 112. {smsSilencieux}', tel: '{police}' } },
 ];

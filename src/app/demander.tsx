@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useKeepAwake } from 'expo-keep-awake';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bouton, Carte, Texte } from '@/components/ui';
 import { detecter, type Alerte } from '@/lib/ia/garde-fous';
 import { estInstalle, MODELES } from '@/lib/ia/modeles';
@@ -10,7 +11,7 @@ import { arreter, charger, repondre, type Message } from '@/lib/ia/moteur';
 import { chercher, type Resultat } from '@/lib/recherche';
 import { KEYS, useStored } from '@/lib/store';
 import { c, space } from '@/lib/theme';
-import { arreterEtTranscrire, arreterLecture, demarrerEnregistrement, lire, voixInstallee } from '@/lib/voix';
+import { arreterEtTranscrire, arreterLecture, demarrerEnregistrement, lireReponse, voixInstallee } from '@/lib/voix';
 
 type Bulle = { role: 'user' | 'assistant'; texte: string; sources?: Resultat[]; alertes?: Alerte[]; sansIA?: boolean };
 type Etat = 'libre' | 'ecoute' | 'transcription' | 'chargement' | 'reponse';
@@ -33,6 +34,8 @@ export default function Demander() {
   const [voixDispo, setVoixDispo] = useState<boolean | null>(null);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const autoLance = useRef(false);
+  const finEnCours = useRef(false);
+  const insets = useSafeAreaInsets();
   const modele = MODELES.find((m) => m.id === actif);
 
   useEffect(() => {
@@ -93,7 +96,7 @@ export default function Demander() {
       const finale = (await repondre(question, sources, historique, (t) => majDerniere({ texte: t }))).trim();
       majDerniere({ texte: finale });
       // Question posée à voix haute : la réponse est lue à voix haute (mains et yeux libres).
-      if (parVoix) lire(finale);
+      if (parVoix) lireReponse(finale);
     } catch (e) {
       majDerniere({ texte: `L’IA a rencontré un problème (${e instanceof Error ? e.message : e}). Les fiches ci-dessous restent valables.`, sansIA: true });
     } finally {
@@ -110,7 +113,9 @@ export default function Demander() {
       return;
     }
     try {
-      await demarrerEnregistrement();
+      finEnCours.current = false;
+      // Arrêt automatique quand la personne a fini de parler.
+      await demarrerEnregistrement(() => finirEcoute());
       setEtat('ecoute');
     } catch (e) {
       Alert.alert('Micro', String(e instanceof Error ? e.message : e));
@@ -118,6 +123,8 @@ export default function Demander() {
   };
 
   const finirEcoute = async () => {
+    if (finEnCours.current) return; // touché ET silence détecté : une seule fin
+    finEnCours.current = true;
     setEtat('transcription');
     try {
       const texte = await arreterEtTranscrire();
@@ -136,7 +143,7 @@ export default function Demander() {
   const occupe = etat === 'chargement' || etat === 'reponse' || etat === 'transcription';
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior="padding" keyboardVerticalOffset={90}>
       <ScrollView ref={scroll} contentContainerStyle={{ padding: space.lg, gap: space.md }} onContentSizeChange={() => scroll.current?.scrollToEnd()}>
         {iaDispo === false && (
           <Carte couleur={c.accent}>
@@ -172,7 +179,7 @@ export default function Demander() {
               <Carte>
                 <Texte>{b.texte || (etat === 'chargement' ? 'Démarrage de l’IA… (quelques secondes)' : '…')}</Texte>
                 {!!b.texte && !(etat === 'reponse' && i === bulles.length - 1) && (
-                  <Pressable onPress={() => lire(b.texte)} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' }}>
+                  <Pressable onPress={() => lireReponse(b.texte)} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' }}>
                     <Ionicons name="volume-high" size={20} color={c.info} />
                     <Text style={{ color: c.info, fontWeight: '600' }}>Écouter</Text>
                   </Pressable>
@@ -204,14 +211,14 @@ export default function Demander() {
       {etat === 'ecoute' || etat === 'transcription' ? (
         <Pressable
           onPress={() => etat === 'ecoute' && finirEcoute()}
-          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, padding: space.xl, backgroundColor: etat === 'ecoute' ? c.danger : c.cardAlt }}>
+          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, padding: space.xl, paddingBottom: space.xl + insets.bottom, backgroundColor: etat === 'ecoute' ? c.danger : c.cardAlt }}>
           {etat === 'ecoute' ? <Ionicons name="mic" size={32} color="#000" /> : <ActivityIndicator color={c.text} />}
           <Text style={{ color: etat === 'ecoute' ? '#000' : c.text, fontSize: 18, fontWeight: '800' }}>
-            {etat === 'ecoute' ? 'Je t’écoute… Touche pour envoyer' : 'Je transcris ce que tu as dit…'}
+            {etat === 'ecoute' ? 'Je t’écoute… (envoi automatique quand tu te tais)' : 'Je transcris ce que tu as dit…'}
           </Text>
         </Pressable>
       ) : (
-        <View style={{ flexDirection: 'row', gap: 8, padding: space.md, borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.card, alignItems: 'center' }}>
+        <View style={{ flexDirection: 'row', gap: 8, padding: space.md, paddingBottom: space.md + insets.bottom, borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.card, alignItems: 'center' }}>
           <Pressable onPress={ecouter} disabled={occupe} hitSlop={8}>
             <Ionicons name="mic-circle" size={44} color={occupe ? c.muted : c.info} />
           </Pressable>

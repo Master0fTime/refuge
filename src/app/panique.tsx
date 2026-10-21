@@ -3,43 +3,45 @@ import { useKeepAwake } from 'expo-keep-awake';
 import { router } from 'expo-router';
 import * as Speech from 'expo-speech';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text, Vibration, View } from 'react-native';
+import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, Vibration, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { c } from '@/lib/theme';
+import { dire } from '@/lib/voix';
 
-// Mode « Je panique » : une seule chose à la fois, en très gros, avec vibrations et voix.
-// Inspiré des premiers secours psychologiques (OMS) : stabiliser, puis orienter.
+// « Je panique » : un DIALOGUE, pas seulement un exercice de respiration.
+// Paniquer ne veut pas dire être incapable d'agir : on commence par comprendre ce qui se passe,
+// et s'il y a un danger, on donne d'abord les gestes de mise à l'abri.
+// Principes (premiers secours psychologiques, OMS) : phrases courtes, une action à la fois,
+// nommer l'émotion sans la minimiser, ne jamais dire « calme-toi », redonner du contrôle.
 
 const TEMPS = [
   { nom: 'Inspire', duree: 4000, echelle: 1, vibration: [0, 350] },
   { nom: 'Bloque', duree: 4000, echelle: 1, vibration: [0, 60, 120, 60] },
   { nom: 'Expire', duree: 6000, echelle: 0.45, vibration: [0, 700] },
 ] as const;
-const CYCLES = 6; // ≈ 1 min 25 : assez pour faire baisser le rythme cardiaque
 
 const PHRASES = [
-  'Tu es là, et tu respires. C’est tout ce que tu as à faire.',
-  'Ce que tu ressens est très fort, mais ça va passer.',
-  'Une panique ne dure pas : elle redescend toujours.',
-  'Tu n’as rien à décider pour l’instant.',
+  'Ce que tu ressens est très fort. C’est normal : ton corps se prépare à agir.',
+  'Une crise d’angoisse est très désagréable, mais elle ne t’abîme pas. Elle redescend toujours.',
+  'Tu n’as rien à décider pour l’instant. Juste respirer.',
   'Je reste avec toi.',
 ];
 
 const ANCRAGE = [
-  'Regarde autour de toi.\nNomme 5 choses que tu VOIS.',
-  'Touche 4 choses autour de toi.\nSens leur matière.',
-  'Écoute.\nRepère 3 sons.',
-  'Trouve 2 odeurs.\nMême très légères.',
-  'Pense à 1 chose qui te fait du bien.',
+  'Pose tes deux pieds bien à plat.\nSens le sol sous toi.',
+  'Regarde autour de toi.\nNomme 5 choses que tu vois.',
+  'Touche 3 choses autour de toi.\nSens leur matière.',
+  'Écoute.\nRepère 2 sons.',
 ];
 
-type Etape = 'respiration' | 'ancrage' | 'blesse' | 'danger' | 'suite';
+type Etape = 'accueil' | 'danger' | 'abri' | 'respiration' | 'ancrage' | 'blesse' | 'enDanger' | 'seul' | 'suite';
 
 export default function Panique() {
   useKeepAwake();
   const insets = useSafeAreaInsets();
-  const [etape, setEtape] = useState<Etape>('respiration');
+  const [etape, setEtape] = useState<Etape>('accueil');
   const [voix, setVoix] = useState(true);
+  const [cycles, setCycles] = useState(6);
   const [temps, setTemps] = useState(0);
   const [cycle, setCycle] = useState(0);
   const [phrase, setPhrase] = useState(0);
@@ -47,25 +49,41 @@ export default function Panique() {
   const echelle = useRef(new Animated.Value(0.45)).current;
   const voixRef = useRef(voix);
   voixRef.current = voix;
+  const apresRespiration = useRef<Etape>('ancrage');
 
-  const dire = (t: string) => {
-    if (!voixRef.current) return;
-    Speech.stop();
-    Speech.speak(t, { language: 'fr-FR', rate: 0.85, pitch: 0.95 });
+  const parler = (t: string) => {
+    if (voixRef.current) dire(t, { lent: true });
   };
 
-  // Boucle de respiration : chaque temps anime le cercle, vibre et se dit à voix basse.
+  // Ce qui est dit à voix haute à chaque étape.
+  useEffect(() => {
+    const textes: Partial<Record<Etape, string>> = {
+      accueil: 'Je suis là avec toi. Qu’est-ce qui se passe ?',
+      danger: 'D’abord ta sécurité. Éloigne-toi des fenêtres. Mets-toi au plus bas, derrière un mur solide.',
+      abri: 'Si tu peux bouger sans danger, va vers l’endroit le plus protégé. Sinon, reste au sol et protège ta tête.',
+      ancrage: ANCRAGE[ancrage].replace('\n', ' '),
+      blesse: 'Est-ce que toi ou quelqu’un près de toi est blessé ?',
+      enDanger: 'Es-tu en danger, là où tu es, maintenant ?',
+      seul: 'Es-tu seul ?',
+      suite: 'Tu as tenu bon. Qu’est-ce que tu veux faire maintenant ?',
+    };
+    const t = textes[etape];
+    if (t) parler(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [etape, ancrage]);
+
+  // Respiration guidée : cercle, vibrations, voix.
   useEffect(() => {
     if (etape !== 'respiration') return;
     let i = 0;
     let n = 0;
     let timer: ReturnType<typeof setTimeout>;
-    dire('On respire ensemble. Suis le cercle.');
+    parler(cycles === 1 ? 'Une seule respiration lente, avec moi.' : 'On respire ensemble. Suis le cercle.');
     const pas = () => {
       const t = TEMPS[i];
       setTemps(i);
       Vibration.vibrate(t.vibration as unknown as number[]);
-      dire(t.nom);
+      parler(t.nom);
       Animated.timing(echelle, { toValue: t.echelle, duration: t.duree, easing: Easing.inOut(Easing.sin), useNativeDriver: true }).start();
       timer = setTimeout(() => {
         i = (i + 1) % TEMPS.length;
@@ -73,8 +91,8 @@ export default function Panique() {
           n += 1;
           setCycle(n);
           setPhrase((p) => (p + 1) % PHRASES.length);
-          if (n >= CYCLES) {
-            setEtape('ancrage');
+          if (n >= cycles) {
+            setEtape(apresRespiration.current);
             return;
           }
         }
@@ -91,20 +109,20 @@ export default function Panique() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [etape]);
 
-  useEffect(() => {
-    if (etape === 'ancrage') dire(ANCRAGE[ancrage].replace('\n', ' '));
-    if (etape === 'blesse') dire('Est-ce que toi ou quelqu’un près de toi est blessé ?');
-    if (etape === 'danger') dire('Es-tu en danger, là, maintenant ?');
-    if (etape === 'suite') dire('Bravo, tu as tenu bon. Tu peux continuer à respirer, ou passer à la suite.');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [etape, ancrage]);
-
   useEffect(
     () => () => {
       Speech.stop();
+      Vibration.cancel();
     },
     [],
   );
+
+  const respirer = (n: number, ensuite: Etape) => {
+    setCycles(n);
+    setCycle(0);
+    apresRespiration.current = ensuite;
+    setEtape('respiration');
+  };
 
   const quitter = (route?: Parameters<typeof router.replace>[0]) => {
     Speech.stop();
@@ -124,6 +142,41 @@ export default function Panique() {
         </Pressable>
       </View>
 
+      {etape === 'accueil' && (
+        <ScrollView contentContainerStyle={st.liste}>
+          <Text style={st.grand}>Je suis là avec toi.</Text>
+          <Text style={st.phrase}>Qu’est-ce qui se passe ?</Text>
+          <Choix icone="warning" couleur={c.danger} label="Danger autour de moi" sous="Explosion, tirs, incendie, eau qui monte…" onPress={() => setEtape('danger')} />
+          <Choix icone="medkit" couleur="#f87171" label="Quelqu’un est blessé" onPress={() => quitter({ pathname: '/guide', params: { probleme: 'blesse' } })} />
+          <Choix icone="people" couleur="#c084fc" label="Je suis séparé de mes proches" onPress={() => quitter({ pathname: '/guide', params: { probleme: 'separe' } })} />
+          <Choix icone="pulse" couleur="#2dd4bf" label="Crise d’angoisse" sous="Cœur qui s’emballe, souffle court, peur intense" onPress={() => respirer(6, 'ancrage')} />
+          <Choix icone="help-circle" couleur={c.accent} label="Je ne sais pas, tout se mélange" onPress={() => respirer(1, 'blesse')} />
+          <Choix icone="chatbubbles" couleur={c.info} label="Je veux en parler" sous="L’IA t’écoute et t’aide à y voir clair" onPress={() => quitter({ pathname: '/demander', params: { voix: '1' } })} />
+        </ScrollView>
+      )}
+
+      {etape === 'danger' && (
+        <ScrollView contentContainerStyle={st.liste}>
+          <Text style={st.grand}>D’abord, ta sécurité.</Text>
+          <Consigne n={1} texte="Éloigne-toi des fenêtres et des vitres." />
+          <Consigne n={2} texte="Mets-toi au plus bas, derrière un mur solide ou dans une pièce sans fenêtre (couloir, salle de bain, sous-sol)." />
+          <Consigne n={3} texte="Si c’est à portée de main : chaussures, téléphone, papiers. Sinon, laisse tout." />
+          <Consigne n={4} texte="Ne sors pas voir ce qui se passe." />
+          <Text style={st.phrase}>Es-tu à l’abri maintenant ?</Text>
+          <OuiNon oui={() => respirer(1, 'suite')} non={() => setEtape('abri')} />
+        </ScrollView>
+      )}
+
+      {etape === 'abri' && (
+        <ScrollView contentContainerStyle={st.liste}>
+          <Text style={st.grand}>Protège-toi.</Text>
+          <Consigne n={1} texte="Si tu peux bouger sans danger : va vers l’endroit le plus protégé (sous-sol, cage d’escalier, couloir au centre du bâtiment)." />
+          <Consigne n={2} texte="Sinon : reste allongé au sol, protège ta tête avec tes bras." />
+          <Consigne n={3} texte="Odeur de gaz ou fumée : sors dès que c’est possible, en restant bas." />
+          <GrosBouton label="Je suis à l’abri" couleur={c.ok} onPress={() => respirer(1, 'suite')} />
+        </ScrollView>
+      )}
+
       {etape === 'respiration' && (
         <>
           <Text style={st.phrase}>{PHRASES[phrase]}</Text>
@@ -131,11 +184,13 @@ export default function Panique() {
             <Animated.View style={[st.cercle, { transform: [{ scale: echelle }] }]} />
             <Text style={st.temps}>{TEMPS[temps].nom}</Text>
           </View>
-          <Text style={st.petit}>
-            {cycle + 1} / {CYCLES}
-          </Text>
-          <Pressable onPress={() => setEtape('ancrage')} style={st.lien}>
-            <Text style={st.lienTxt}>Ça va mieux, continuer</Text>
+          {cycles > 1 && (
+            <Text style={st.petit}>
+              {Math.min(cycle + 1, cycles)} / {cycles}
+            </Text>
+          )}
+          <Pressable onPress={() => setEtape(apresRespiration.current)} style={st.lien}>
+            <Text style={st.lienTxt}>Continuer</Text>
           </Pressable>
         </>
       )}
@@ -148,29 +203,64 @@ export default function Panique() {
       )}
 
       {etape === 'blesse' && (
+        <Question texte="Toi ou quelqu’un près de toi, est-il blessé ?" oui={() => quitter({ pathname: '/guide', params: { probleme: 'blesse' } })} non={() => setEtape('enDanger')} />
+      )}
+      {etape === 'enDanger' && <Question texte="Es-tu en danger, là où tu es, maintenant ?" oui={() => setEtape('danger')} non={() => setEtape('seul')} />}
+      {etape === 'seul' && (
         <Question
-          texte="Toi ou quelqu’un près de toi, est-il blessé ?"
-          oui={() => quitter('/guide')}
-          non={() => setEtape('danger')}
+          texte="Es-tu seul ?"
+          oui={() => {
+            parler('Tu n’es pas complètement seul : je suis là, et tu peux prévenir tes proches.');
+            setEtape('suite');
+          }}
+          non={() => setEtape('suite')}
         />
       )}
 
-      {etape === 'danger' && (
-        <Question texte="Es-tu en danger, là, maintenant ?" oui={() => quitter('/guide')} non={() => setEtape('suite')} />
-      )}
-
       {etape === 'suite' && (
-        <View style={st.plein}>
-          <Text style={st.grand}>Bravo, tu as tenu bon.</Text>
-          <Text style={st.phrase}>Tu es en sécurité pour l’instant. Que veux-tu faire ?</Text>
-          <View style={{ gap: 12, alignSelf: 'stretch' }}>
-            <GrosBouton label="Respirer encore" onPress={() => (setCycle(0), setAncrage(0), setEtape('respiration'))} />
-            <GrosBouton label="Parler à quelqu’un (l’IA)" onPress={() => quitter({ pathname: '/demander', params: { voix: '1' } })} />
-            <GrosBouton label="Conseils contre la peur" onPress={() => quitter('/fiche/moral-stress')} />
-            <GrosBouton label="Retour à l’accueil" discret onPress={() => quitter()} />
-          </View>
-        </View>
+        <ScrollView contentContainerStyle={st.liste}>
+          <Text style={st.grand}>Tu as tenu bon.</Text>
+          <Text style={st.phrase}>Qu’est-ce que tu veux faire maintenant ?</Text>
+          <GrosBouton label="Comprendre quoi faire (assistant)" onPress={() => quitter('/guide')} />
+          <GrosBouton label="En parler à l’IA" onPress={() => quitter({ pathname: '/demander', params: { voix: '1' } })} />
+          <GrosBouton label="Prévenir mes proches" onPress={() => quitter('/groupe')} />
+          <GrosBouton label="Respirer encore" discret onPress={() => respirer(6, 'suite')} />
+        </ScrollView>
       )}
+    </View>
+  );
+}
+
+function Choix({ icone, couleur, label, sous, onPress }: { icone: keyof typeof Ionicons.glyphMap; couleur: string; label: string; sous?: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [st.choix, pressed && { opacity: 0.7 }]}>
+      <Ionicons name={icone} size={30} color={couleur} />
+      <View style={{ flex: 1 }}>
+        <Text style={st.choixTxt}>{label}</Text>
+        {sous ? <Text style={st.choixSous}>{sous}</Text> : null}
+      </View>
+    </Pressable>
+  );
+}
+
+function Consigne({ n, texte }: { n: number; texte: string }) {
+  return (
+    <View style={st.consigne}>
+      <Text style={st.numero}>{n}</Text>
+      <Text style={st.consigneTxt}>{texte}</Text>
+    </View>
+  );
+}
+
+function OuiNon({ oui, non }: { oui: () => void; non: () => void }) {
+  return (
+    <View style={{ flexDirection: 'row', gap: 16, alignSelf: 'stretch' }}>
+      <View style={{ flex: 1 }}>
+        <GrosBouton label="Oui" couleur={c.ok} onPress={oui} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <GrosBouton label="Non" couleur={c.danger} onPress={non} />
+      </View>
     </View>
   );
 }
@@ -202,18 +292,25 @@ function GrosBouton({ label, onPress, couleur = c.info, discret }: { label: stri
 }
 
 const st = StyleSheet.create({
-  fond: { flex: 1, backgroundColor: '#0b1016', paddingHorizontal: 24 },
+  fond: { flex: 1, backgroundColor: '#0b1016', paddingHorizontal: 20 },
   barre: { flexDirection: 'row', justifyContent: 'space-between' },
   icone: { padding: 8 },
+  liste: { gap: 14, paddingVertical: 12 },
   centre: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   cercle: { position: 'absolute', width: 280, height: 280, borderRadius: 140, backgroundColor: '#2dd4bf33', borderWidth: 3, borderColor: '#2dd4bf' },
   temps: { color: c.text, fontSize: 40, fontWeight: '800' },
-  phrase: { color: c.text, fontSize: 22, lineHeight: 30, textAlign: 'center', marginTop: 16 },
+  phrase: { color: c.text, fontSize: 22, lineHeight: 30, textAlign: 'center', marginTop: 8 },
   petit: { color: c.muted, fontSize: 16, textAlign: 'center', marginTop: 12 },
   lien: { alignSelf: 'center', padding: 16 },
   lienTxt: { color: c.muted, fontSize: 16, textDecorationLine: 'underline' },
   plein: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 32 },
-  grand: { color: c.text, fontSize: 32, lineHeight: 42, fontWeight: '800', textAlign: 'center' },
+  grand: { color: c.text, fontSize: 30, lineHeight: 40, fontWeight: '800', textAlign: 'center' },
+  choix: { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: c.card, borderRadius: 16, padding: 18 },
+  choixTxt: { color: c.text, fontSize: 20, fontWeight: '700' },
+  choixSous: { color: c.muted, fontSize: 15, marginTop: 2 },
+  consigne: { flexDirection: 'row', gap: 14, backgroundColor: c.card, borderRadius: 14, padding: 16, alignItems: 'flex-start' },
+  numero: { color: '#000', backgroundColor: c.accent, width: 32, height: 32, borderRadius: 16, textAlign: 'center', lineHeight: 32, fontWeight: '800', fontSize: 18 },
+  consigneTxt: { color: c.text, fontSize: 20, lineHeight: 28, flex: 1 },
   bouton: { paddingVertical: 22, borderRadius: 16, alignItems: 'center' },
   boutonTxt: { color: '#000', fontSize: 22, fontWeight: '800' },
 });

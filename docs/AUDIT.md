@@ -275,3 +275,26 @@ Les fiches ne suffisent pas pour une personne en pleine crise d'angoisse. Il fau
 12. Messagerie sans réseau (Bluetooth, puis Meshtastic).
 13. Entraînement et quiz, mode groupe ou quartier.
 14. Relecture médicale et juridique de tout le contenu, avant toute diffusion à grande échelle.
+
+---
+
+## 13. Communication de crise : bases psychologiques et formulations
+
+Retour terrain (v0.4) : « Je panique » ne veut pas dire « je ne sais pas agir ». La panique accompagne souvent un danger **réel** (explosion, coupure de courant, foule). Proposer d'abord 90 secondes de respiration serait inadapté, voire dangereux. Depuis la v0.5, le mode panique est un **dialogue de tri** : comprendre, mettre à l'abri, puis seulement apaiser.
+
+**Références :** premiers secours psychologiques de l'OMS (« Regarder, écouter, orienter »), modèle de Hobfoll (5 principes : sécurité, calme, efficacité personnelle, lien, espoir), communication de crise des services de secours.
+
+**Les principes appliqués dans l'appli et dans les consignes de l'IA :**
+1. **La sécurité d'abord.** S'il y a un danger, on donne 2 à 4 gestes très courts avant toute autre chose.
+2. **Une seule action à la fois.** Le stress réduit la mémoire de travail à une ou deux informations.
+3. **Phrases courtes, au présent, à l'impératif doux** : « Éloigne-toi des fenêtres. » Pas de conditionnel, pas de longues explications.
+4. **Nommer et normaliser l'émotion**, sans la minimiser : « C'est normal d'avoir peur, ton corps se prépare à agir. »
+5. **Redonner du contrôle** : proposer des choix simples (2 à 3), dire « Tu peux… ».
+6. **Créer du lien** : « Je suis là avec toi », « tu peux prévenir tes proches ».
+7. **Donner de l'espoir réaliste** : « Une crise d'angoisse redescend toujours », jamais « tout va bien se passer ».
+
+**À éviter :** « Calme-toi », « Ce n'est rien », « Ne t'inquiète pas », les questions ouvertes complexes (« Explique-moi tout »), les listes de plus de 4 éléments en situation aiguë, et l'humour.
+
+**Respiration :** en danger aigu, une seule respiration lente suffit pour retrouver de la clarté (expiration plus longue que l'inspiration : 4 secondes, puis 6). Le cycle complet (6 respirations, environ 1 min 30) est réservé à la crise d'angoisse **sans danger extérieur**.
+
+**À faire valider :** relecture par un psychologue ou psychiatre spécialisé en crise et en trauma, avant toute diffusion large.

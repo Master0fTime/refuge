@@ -3,6 +3,7 @@ import * as Speech from 'expo-speech';
 import { PermissionsAndroid, Platform } from 'react-native';
 import { initWhisper, type WhisperContext } from 'whisper.rn/index';
 import { chemin, estInstalle, ramGo, type Telechargeable } from '@/lib/ia/modeles';
+import { KEYS, lire } from '@/lib/store';
 
 // Reconnaissance vocale 100 % hors ligne (whisper.cpp) et lecture des réponses à voix haute.
 
@@ -53,10 +54,16 @@ async function chargerWhisper() {
 
 // ───────────── Enregistrement du micro (PCM 16 kHz mono, le format attendu par Whisper) ─────────────
 
-let morceaux: string[] = [];
+let morceaux: Uint8Array[] = [];
 let abonnement: { remove(): void } | null = null;
 
-export async function demarrerEnregistrement() {
+// Arrêt automatique : après avoir parlé, ~1,5 s de silence termine la phrase.
+const SEUIL_VOIX = 900; // amplitude 16 bits au-delà de laquelle on considère qu'il y a de la voix
+const SILENCE_FIN_MS = 1500;
+const DUREE_MAX_MS = 60_000;
+
+/** Démarre le micro. `onFin` est appelé quand la personne a fini de parler (silence) ou au bout de 60 s. */
+export async function demarrerEnregistrement(onFin?: () => void) {
   if (Platform.OS === 'android') {
     const r = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO, {
       title: 'Micro',
@@ -67,9 +74,30 @@ export async function demarrerEnregistrement() {
   }
   Speech.stop();
   morceaux = [];
+  let aParle = false;
+  let silenceMs = 0;
+  let dureeMs = 0;
+  let fini = false;
+  const finir = () => {
+    if (fini) return;
+    fini = true;
+    onFin?.();
+  };
   // 6 = VOICE_RECOGNITION : source micro optimisée pour la voix (réduction de bruit).
   AudioRecord.init({ sampleRate: 16000, channels: 1, bitsPerSample: 16, audioSource: 6, wavFile: 'voix.wav', bufferSize: 4096 });
-  abonnement = AudioRecord.on('data', (b64) => morceaux.push(b64));
+  abonnement = AudioRecord.on('data', (b64) => {
+    const bloc = base64VersOctets(b64);
+    morceaux.push(bloc);
+    const ms = (bloc.length / 2 / 16000) * 1000;
+    dureeMs += ms;
+    if (volumeMax(bloc) > SEUIL_VOIX) {
+      aParle = true;
+      silenceMs = 0;
+    } else if (aParle) {
+      silenceMs += ms;
+    }
+    if ((aParle && silenceMs >= SILENCE_FIN_MS) || dureeMs >= DUREE_MAX_MS) finir();
+  });
   AudioRecord.start();
   // On charge Whisper pendant que l'utilisateur parle : la transcription démarre plus vite.
   chargerWhisper().catch(() => {});
@@ -101,17 +129,20 @@ export async function arreterEtTranscrire(): Promise<string> {
   abonnement?.remove();
   abonnement = null;
 
-  // Entiers 16 bits little-endian → flottants entre -1 et 1.
-  const blocs = morceaux.map(base64VersOctets);
+  // whisper.rn attend du PCM 16 bits brut (il le convertit lui-même) : on recolle simplement les morceaux.
+  const blocs = morceaux;
   morceaux = [];
   const total = blocs.reduce((s, b) => s + b.length, 0);
-  const pcm = new Float32Array(Math.floor(total / 2));
+  const pcm = new Uint8Array(total - (total % 2));
   let k = 0;
   for (const b of blocs) {
-    const v = new DataView(b.buffer, b.byteOffset, b.byteLength);
-    for (let i = 0; i + 1 < b.length; i += 2) pcm[k++] = v.getInt16(i, true) / 32768;
+    const n = Math.min(b.length, pcm.length - k);
+    pcm.set(b.subarray(0, n), k);
+    k += n;
   }
-  if (pcm.length < 16000 * 0.5) return ''; // moins d'une demi-seconde : rien d'exploitable
+  const echantillons = pcm.length / 2;
+  if (echantillons < 16000 * 0.5) return ''; // moins d'une demi-seconde : rien d'exploitable
+  if (volumeMax(pcm) < 300) throw new Error('Le micro n’a capté que du silence. Vérifie qu’aucune autre appli ne l’utilise, puis réessaie.');
 
   const ctx = await chargerWhisper();
   const { promise } = ctx.transcribeData(pcm.buffer, {
@@ -120,15 +151,52 @@ export async function arreterEtTranscrire(): Promise<string> {
     prompt: 'Question en français sur la survie, les premiers secours, l’eau, le feu, la nourriture, la sécurité.',
   });
   const { result } = await promise;
-  // Whisper note parfois les silences ou la musique entre crochets : on les retire.
-  return result.replace(/\[[^\]]*\]|\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
+  // Whisper note parfois les bruits entre crochets, parenthèses ou astérisques : on les retire.
+  return result
+    .replace(/\[[^\]]*\]|\([^)]*\)|\*[^*]*\*/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
-// ───────────── Lecture à voix haute (voix du système, hors ligne en général) ─────────────
+/** Amplitude maximale (0 à 32767) : sert à détecter un micro muet. */
+function volumeMax(pcm: Uint8Array) {
+  const v = new DataView(pcm.buffer, pcm.byteOffset, pcm.byteLength);
+  let max = 0;
+  for (let i = 0; i + 1 < pcm.length; i += 64) max = Math.max(max, Math.abs(v.getInt16(i, true)));
+  return max;
+}
 
-export function lire(texte: string) {
+// ───────────── Lecture à voix haute (synthèse vocale du téléphone, hors ligne) ─────────────
+
+export type ReglageVoix = { identifiant: string | null; vitesse: number };
+const REGLAGE_DEFAUT: ReglageVoix = { identifiant: null, vitesse: 1 };
+
+/** Voix françaises installées, les plus naturelles d'abord (hors ligne, qualité « Enhanced »). */
+export async function voixFrancaises(): Promise<Speech.Voice[]> {
+  const toutes = await Speech.getAvailableVoicesAsync();
+  const score = (v: Speech.Voice) =>
+    (v.quality === Speech.VoiceQuality.Enhanced ? 4 : 0) +
+    (/network/i.test(v.identifier) ? 0 : 2) + // les voix « network » demandent Internet
+    (/fr-(CH|FR)/i.test(v.language) ? 1 : 0);
+  return toutes.filter((v) => v.language.toLowerCase().startsWith('fr')).sort((a, b) => score(b) - score(a));
+}
+
+let voixAuto: string | null | undefined;
+async function voixParDefaut() {
+  if (voixAuto === undefined) voixAuto = (await voixFrancaises())[0]?.identifier ?? null;
+  return voixAuto;
+}
+
+/** Parle avec la voix choisie dans les réglages (ou la plus naturelle disponible). */
+export async function dire(texte: string, options: { lent?: boolean } = {}) {
+  const r = lire<ReglageVoix>(KEYS.voix, REGLAGE_DEFAUT);
+  const voice = r.identifiant ?? (await voixParDefaut()) ?? undefined;
   Speech.stop();
-  Speech.speak(texte.replace(/\[\d+\]/g, '').replace(/[*#]/g, ''), { language: 'fr-FR', rate: 1.0 });
+  Speech.speak(texte, { language: 'fr-FR', voice, rate: r.vitesse * (options.lent ? 0.9 : 1), pitch: 1 });
+}
+
+export function lireReponse(texte: string) {
+  dire(texte.replace(/\[\d+\]/g, '').replace(/[*#]/g, ''));
 }
 
 export const arreterLecture = () => Speech.stop();

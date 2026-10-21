@@ -12,9 +12,12 @@ import type { Groupe } from '@/lib/types';
 
 export default function Rejoindre() {
   useKeepAwake();
-  const { gid, pid } = useLocalSearchParams<{ gid: string; pid: string }>();
+  // Soit un point de ralliement (gid + pid), soit n'importe quel point de la carte (lat, lon, nom).
+  const { gid, pid, lat, lon, nom } = useLocalSearchParams<{ gid?: string; pid?: string; lat?: string; lon?: string; nom?: string }>();
   const [groupes] = useStored<Groupe[]>(KEYS.groupes, []);
-  const point = groupes.find((g) => g.id === gid)?.points.find((p) => p.id === pid);
+  const point =
+    groupes.find((g) => g.id === gid)?.points.find((p) => p.id === pid) ??
+    (lat && lon ? { nom: nom ?? 'Point', note: '', lat: Number(lat), lon: Number(lon) } : undefined);
 
   const [pos, setPos] = useState<Location.LocationObject | null>(null);
   const [heading, setHeading] = useState<number | null>(null);

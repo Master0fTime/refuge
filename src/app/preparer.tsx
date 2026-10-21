@@ -7,6 +7,7 @@ import { Alert, Text, View } from 'react-native';
 import { Bouton, Carte, Ecran, Ligne, Sous, Texte, Titre } from '@/components/ui';
 import { espaceLibre, finaliser, formatTaille, MODELES, preparerDossier, telecharger } from '@/lib/ia/modeles';
 import { redemarrer, verifierMaj, type EtatMaj } from '@/lib/maj';
+import { tailleEstimee, telechargerZone, zonePays } from '@/lib/cartes';
 import { packPret, packs, type Pack } from '@/lib/packs';
 import { usePays } from '@/lib/pays';
 import { KEYS, useStored } from '@/lib/store';
@@ -41,7 +42,8 @@ export default function Preparer() {
   }, [rafraichir]);
 
   const aInstaller = liste.filter((p) => p.disponible && p.fichier && !prets[p.id]);
-  const total = aInstaller.reduce((s, p) => s + (p.fichier?.octets ?? 0), 0);
+  const carteAFaire = prets.cartes === false;
+  const total = aInstaller.reduce((s, p) => s + (p.fichier?.octets ?? 0), 0) + (carteAFaire ? tailleEstimee(zonePays(pays)) : 0);
   const toutPret = liste.filter((p) => p.disponible).every((p) => prets[p.id]);
 
   const installerTout = async () => {
@@ -64,6 +66,15 @@ export default function Preparer() {
         setEnCours(null);
         Alert.alert('Téléchargement interrompu', `${p.nom} : ${e instanceof Error ? e.message : e}\nVérifie ta connexion puis appuie à nouveau sur le bouton.`);
         return;
+      }
+    }
+    if (carteAFaire) {
+      setEnCours('cartes');
+      try {
+        await telechargerZone(zonePays(pays), (x) => setProgres((pr) => ({ ...pr, cartes: x / 100 })));
+      } catch (e) {
+        Alert.alert('Carte interrompue', `${e instanceof Error ? e.message : e}
+Réessaie depuis l’onglet Carte.`);
       }
     }
     setEnCours(null);
@@ -91,7 +102,7 @@ export default function Preparer() {
       <Ligne titre={`Pays : ${pays.drapeau} ${pays.nom}`} sous="Numéros d’urgence, alertes et radios adaptés. Touche pour changer." icone="flag" onPress={() => router.push('/pays')} />
 
       {liste.map((p) => (
-        <LignePack key={p.id} p={p} pret={!!prets[p.id]} progres={progres[p.id]} actif={enCours === p.id} />
+        <LignePack key={p.id} p={p} pret={!!prets[p.id]} progres={progres[p.id]} actif={enCours === p.id} taille={p.id === 'cartes' ? tailleEstimee(zonePays(pays)) : p.fichier?.octets} />
       ))}
 
       {!toutPret && (
@@ -108,6 +119,8 @@ export default function Preparer() {
           </Texte>
         </>
       )}
+
+      <Bouton label="Ajouter la carte détaillée de ma zone" icone="map" discret onPress={() => router.push('/cartes')} />
 
       <Sous>Sans Internet</Sous>
       <Bouton label="Récupérer depuis un proche" icone="phone-portrait" discret onPress={() => router.push('/recevoir')} />
@@ -134,7 +147,7 @@ export default function Preparer() {
   );
 }
 
-function LignePack({ p, pret, progres, actif }: { p: Pack; pret: boolean; progres?: number; actif: boolean }) {
+function LignePack({ p, pret, progres, actif, taille }: { p: Pack; pret: boolean; progres?: number; actif: boolean; taille?: number }) {
   const couleur = pret ? c.ok : p.disponible ? c.accent : c.muted;
   return (
     <View style={{ backgroundColor: c.card, borderRadius: 12, padding: space.lg, gap: 6, opacity: p.disponible ? 1 : 0.6 }}>
@@ -142,7 +155,7 @@ function LignePack({ p, pret, progres, actif }: { p: Pack; pret: boolean; progre
         <Ionicons name={p.icone} size={26} color={couleur} />
         <Text style={{ color: c.text, fontSize: 17, fontWeight: '700', flex: 1 }}>{p.nom}</Text>
         <Text style={{ color: couleur, fontWeight: '700' }}>
-          {pret ? 'Installé' : !p.disponible ? 'Bientôt' : p.fichier ? formatTaille(p.fichier.octets) : 'Inclus'}
+          {pret ? 'Installé' : !p.disponible ? 'Bientôt' : taille ? `≈ ${formatTaille(taille)}` : 'Inclus'}
         </Text>
       </View>
       <Texte muted>{p.utilite}</Texte>

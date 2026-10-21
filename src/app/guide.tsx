@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Bouton, Carte, Ecran, Ligne, Sous, Texte, Titre } from '@/components/ui';
 import { fiche } from '@/data/fiches';
@@ -7,7 +7,9 @@ import { localiser } from '@/lib/pays';
 import { c } from '@/lib/theme';
 
 export default function Guide() {
-  const [probleme, setProbleme] = useState<Probleme | null>(null);
+  // Ouvert depuis « Je panique » (ou un autre écran) avec un problème déjà choisi.
+  const { probleme: depart } = useLocalSearchParams<{ probleme?: string }>();
+  const [probleme, setProbleme] = useState<Probleme | null>(PROBLEMES.find((p) => p.id === depart) ?? null);
   const [triFait, setTriFait] = useState(false);
   const [lieu, setLieu] = useState<LieuId | null>(null);
 

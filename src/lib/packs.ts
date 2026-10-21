@@ -1,5 +1,6 @@
 import type { IconName } from '@/components/ui';
 import { estInstalle, modeleConseille, MODELES, type Telechargeable } from '@/lib/ia/modeles';
+import { cartesPretes } from '@/lib/cartes';
 import { voixConseillee, voixInstallee } from '@/lib/voix';
 
 // Tout ce qu'il faut télécharger UNE FOIS, tant qu'Internet fonctionne, pour que l'appli soit complète hors ligne.
@@ -51,8 +52,8 @@ export function packs(): Pack[] {
       id: 'cartes',
       nom: 'Cartes hors ligne',
       icone: 'map',
-      utilite: 'Cartes de ta région, utilisables sans réseau. Bientôt disponible.',
-      disponible: false,
+      utilite: 'Ton pays en vue d’ensemble, puis ta zone en détail : te repérer et rejoindre tes points sans réseau.',
+      disponible: true,
     },
   ];
 }
@@ -65,6 +66,7 @@ export async function packPret(p: Pack): Promise<boolean> {
     return false;
   }
   if (p.id === 'voix') return (await voixInstallee()) !== null;
+  if (p.id === 'cartes') return cartesPretes();
   return false;
 }
 

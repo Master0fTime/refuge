@@ -45,4 +45,6 @@ export const KEYS = {
   groupes: 'groupes',
   modele: 'modele',
   pays: 'pays',
+  voix: 'voix',
+  reperes: 'reperes',
 } as const;

@@ -29,6 +29,8 @@ export default function RootLayout() {
         <Stack.Screen name="preparer" options={{ title: 'Préparer mon téléphone' }} />
         <Stack.Screen name="partager" options={{ title: 'Partager Refuge' }} />
         <Stack.Screen name="pays" options={{ title: 'Pays et numéros utiles' }} />
+        <Stack.Screen name="reglages-voix" options={{ title: 'Voix de l’IA' }} />
+        <Stack.Screen name="cartes" options={{ title: 'Cartes hors ligne' }} />
         <Stack.Screen name="recevoir" options={{ title: 'Récupérer depuis un proche' }} />
         <Stack.Screen name="fiche/[id]" options={{ title: '' }} />
         <Stack.Screen name="groupe/[id]" options={{ title: 'Groupe' }} />

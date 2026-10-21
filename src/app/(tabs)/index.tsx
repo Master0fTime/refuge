@@ -85,6 +85,7 @@ export default function Urgence() {
         onPress={() => router.push('/preparer')}
       />
       <Ligne titre="Réglages de l’IA" sous="Changer de modèle, importer un fichier" icone="hardware-chip" onPress={() => router.push('/ia')} />
+      <Ligne titre="Voix de l’IA" sous="Choisir une voix plus naturelle, la vitesse" icone="volume-high" onPress={() => router.push('/reglages-voix')} />
     </Ecran>
   );
 }

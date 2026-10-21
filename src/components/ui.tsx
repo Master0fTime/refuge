@@ -1,13 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps, ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { c, space } from '@/lib/theme';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
 
 export function Ecran({ children }: { children: ReactNode }) {
+  // Marge basse = barre de navigation Android (gestes ou boutons), pour que le dernier bouton reste touchable.
+  const insets = useSafeAreaInsets();
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={s.ecran} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      style={{ flex: 1, backgroundColor: c.bg }}
+      contentContainerStyle={[s.ecran, { paddingBottom: 48 + insets.bottom }]}
+      keyboardShouldPersistTaps="handled">
       {children}
     </ScrollView>
   );
