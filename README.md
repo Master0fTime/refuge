@@ -42,6 +42,16 @@ PATH="/c/Windows/System32:$PATH" node node_modules/llama.rn/install/download-nat
 - Garde-fous (`src/lib/ia/garde-fous.ts`) : une urgence vitale détectée dans la question affiche immédiatement la fiche fixe et le numéro d'urgence, avant la réponse de l'IA.
 - Sans modèle installé, « Poser une question » renvoie les fiches correspondantes.
 
+## Préparation, voix et mises à jour (v0.3)
+
+- `src/app/preparer.tsx` : écran « Préparer mon téléphone », ouvert au premier lancement. Le bouton « Tout installer » télécharge l'IA et la reconnaissance vocale choisies selon la mémoire du téléphone (catalogue dans `src/lib/packs.ts`).
+- Voix (`src/lib/voix.ts`) : dictée hors ligne avec whisper.cpp (`whisper.rn`). Le micro est lu en PCM 16 kHz (`@fugood/react-native-audio-pcm-stream`). La lecture à voix haute passe par `expo-speech`. L'écriture au clavier reste toujours possible.
+- Mises à jour : EAS Update (`expo-updates`), canal `preview` pour les APK de test. Vérification au lancement, sans jamais bloquer le démarrage hors ligne. Une mise à jour ne s'applique qu'aux APK de même empreinte native (`runtimeVersion: fingerprint`). Si les modules natifs changent, il faut un nouvel APK.
+
+```bash
+npx eas-cli@latest update --channel preview --message "Nouvelles fiches"
+```
+
 ## Structure
 
 - `src/app/` : écrans (Expo Router)

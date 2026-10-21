@@ -2,14 +2,14 @@ import * as Device from 'expo-device';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FS from 'expo-file-system/legacy';
 
+/** Un gros fichier téléchargeable une fois puis utilisé hors ligne (modèle IA, modèle vocal…). */
+export type Telechargeable = { fichier: string; url: string; octets: number };
+
 // Modèles libres (Apache 2.0), téléchargeables sans compte. Format GGUF quantifié pour llama.cpp.
-export type Modele = {
+export type Modele = Telechargeable & {
   id: string;
   nom: string;
   description: string;
-  fichier: string;
-  url: string;
-  octets: number;
   ramMinGo: number;
 };
 
@@ -44,7 +44,7 @@ export const MODELES: Modele[] = [
 ];
 
 export const DOSSIER = `${FS.documentDirectory}modeles/`;
-export const chemin = (m: Modele) => DOSSIER + m.fichier;
+export const chemin = (m: Telechargeable) => DOSSIER + m.fichier;
 
 export const ramGo = () => (Device.totalMemory ? Device.totalMemory / 1024 ** 3 : null);
 
@@ -58,7 +58,7 @@ export function modeleConseille(): Modele | null {
 
 export const formatTaille = (o: number) => (o >= 1024 ** 3 ? `${(o / 1024 ** 3).toFixed(1)} Go` : `${Math.round(o / 1024 ** 2)} Mo`);
 
-export async function estInstalle(m: Modele) {
+export async function estInstalle(m: Telechargeable) {
   const info = await FS.getInfoAsync(chemin(m));
   // Un fichier tronqué (téléchargement interrompu) ne doit pas être considéré comme installé.
   return info.exists && !info.isDirectory && info.size >= m.octets * 0.99;
@@ -68,7 +68,7 @@ export async function espaceLibre() {
   return FS.getFreeDiskStorageAsync();
 }
 
-export function telecharger(m: Modele, onProgres: (fraction: number) => void, reprise?: string) {
+export function telecharger(m: Telechargeable, onProgres: (fraction: number) => void, reprise?: string) {
   return FS.createDownloadResumable(
     m.url,
     chemin(m) + '.part',
@@ -79,7 +79,7 @@ export function telecharger(m: Modele, onProgres: (fraction: number) => void, re
   );
 }
 
-export async function finaliser(m: Modele) {
+export async function finaliser(m: Telechargeable) {
   await FS.moveAsync({ from: chemin(m) + '.part', to: chemin(m) });
 }
 
@@ -88,7 +88,7 @@ export async function preparerDossier() {
   if (!info.exists) await FS.makeDirectoryAsync(DOSSIER, { intermediates: true });
 }
 
-export async function supprimer(m: Modele) {
+export async function supprimer(m: Telechargeable) {
   await FS.deleteAsync(chemin(m), { idempotent: true });
   await FS.deleteAsync(chemin(m) + '.part', { idempotent: true });
 }
@@ -97,12 +97,12 @@ export async function supprimer(m: Modele) {
  * Importer un modèle depuis le téléphone (carte SD, clé USB, fichier reçu d'un proche) :
  * indispensable quand Internet n'est plus là.
  */
-export async function importer(): Promise<Modele | null> {
+export async function importer<T extends Telechargeable>(liste: T[]): Promise<T | null> {
   const r = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: false, type: '*/*' });
   if (r.canceled) return null;
   const doc = r.assets[0];
-  const m = MODELES.find((x) => x.fichier === doc.name);
-  if (!m) throw new Error(`Fichier non reconnu : ${doc.name}. Noms attendus :\n${MODELES.map((x) => x.fichier).join('\n')}`);
+  const m = liste.find((x) => x.fichier === doc.name);
+  if (!m) throw new Error(`Fichier non reconnu : ${doc.name}. Noms attendus :\n${liste.map((x) => x.fichier).join('\n')}`);
   await preparerDossier();
   await FS.copyAsync({ from: doc.uri, to: chemin(m) });
   return m;

@@ -23,6 +23,7 @@ export default function RootLayout() {
         <Stack.Screen name="guide" options={{ title: 'Assistant' }} />
         <Stack.Screen name="demander" options={{ title: 'Poser une question' }} />
         <Stack.Screen name="ia" options={{ title: 'IA hors ligne' }} />
+        <Stack.Screen name="preparer" options={{ title: 'Préparer mon téléphone' }} />
         <Stack.Screen name="fiche/[id]" options={{ title: '' }} />
         <Stack.Screen name="groupe/[id]" options={{ title: 'Groupe' }} />
         <Stack.Screen name="scanner" options={{ title: 'Scanner un QR code', presentation: 'modal' }} />

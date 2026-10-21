@@ -118,7 +118,7 @@ export default function ReglagesIA() {
 
   const importerFichier = async () => {
     try {
-      const m = await importer();
+      const m = await importer(MODELES);
       if (!m) return;
       await rafraichir();
       setActif(m.id);

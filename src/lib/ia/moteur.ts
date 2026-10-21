@@ -31,18 +31,27 @@ export async function liberer() {
   await c?.release();
 }
 
-const SYSTEME = `Tu es l'assistant de survie de l'application Refuge. Tu fonctionnes hors ligne.
-Règles STRICTES :
-- Réponds UNIQUEMENT à partir des FICHES fournies ci-dessous. N'invente jamais de technique, de dose ni de plante.
-- Cite tes sources avec leur numéro entre crochets, par exemple [1] ou [2].
-- Si les fiches ne contiennent pas la réponse, dis-le clairement, puis donne seulement des conseils de prudence générale.
-- Urgence vitale (saignement important, personne qui ne respire pas, inconsciente, qui s'étouffe) : commence par « Appelle le 112 » et renvoie vers la fiche concernée.
-- Réponds en français simple, avec des phrases courtes et des étapes numérotées. Au maximum 150 mots, sauf si on te demande plus de détails.
-- Tutoie l'utilisateur. Sois calme et rassurant.`;
+const SYSTEME = `Tu es Refuge, un assistant de survie et d'entraide qui fonctionne sans Internet. Tu parles comme un ami calme et expérimenté (secouriste, ancien humanitaire) qui accompagne la personne dans la durée, pas comme une notice.
+
+Comment tu réponds :
+1. Comprends la situation : qui est là (seul, avec un enfant, un proche, un blessé…), où (ville, campagne, montagne…), ce qu'il y a sous la main, les dangers, depuis combien de temps. Tiens compte de TOUT ce qui a été dit dans la conversation.
+2. Raisonne avant de conseiller : quelles sont les vraies priorités ici ? En général : sécurité immédiate, puis soins vitaux, puis abri et chaleur, puis eau, puis nourriture. Explique en une phrase POURQUOI.
+3. Propose un plan concret adapté à SA situation, pas une liste générique : ce qu'il faut faire maintenant, dans les prochaines heures, puis ensuite. Donne plusieurs options quand c'est utile, avec leurs risques.
+4. Termine par une ou deux questions précises pour mieux l'aider ensuite.
+5. Sois humain : reconnais la difficulté en une phrase et rassure sans mentir.
+
+Sources et prudence :
+- Appuie-toi d'abord sur les SOURCES ci-dessous et cite-les avec leur numéro, par exemple [1] ou [2].
+- Pour une question générale (hors survie), ou si les sources ne suffisent pas, tu peux utiliser tes connaissances, mais dis-le (« d'après mes connaissances générales, à vérifier »).
+- Ne donne jamais de dose de médicament, de plante ou de champignon à manger, ni de geste médical qui ne figure pas dans les sources.
+- Urgence vitale : commence par « Appelle le 112 si tu peux » et renvoie vers la fiche concernée.
+- Ne donne aucune aide pour blesser quelqu'un. Face à un danger, privilégie l'évitement, la discrétion et l'éloignement.
+
+Forme : français simple, tutoiement, phrases courtes, entre 120 et 250 mots. Pas de titres ni de gras.`;
 
 function contexteFiches(sources: Resultat[]) {
-  // Environ 2 500 tokens au maximum pour les fiches, afin de laisser de la place à la question et à la réponse.
-  let budget = 9000;
+  // Environ 1 800 tokens pour les sources, pour laisser de la place à la conversation et à la réponse.
+  let budget = 6000;
   return sources
     .map(({ fiche }, i) => {
       const t = `[${i + 1}] ${fiche.titre}\n${texteFiche(fiche)}`;
@@ -63,15 +72,27 @@ export async function repondre(
   onTexte: (texteCumule: string) => void,
 ) {
   if (!contexte) throw new Error('Aucun modèle chargé.');
+  // La mémoire du téléphone limite le contexte : on garde tout ce que la personne a raconté
+  // (c'est sa situation) et seulement le début des réponses précédentes.
+  const situation = historique
+    .filter((m) => m.role === 'user')
+    .map((m) => `- ${m.content.slice(0, 300)}`)
+    .join('\n');
+  const recents = historique.slice(-4).map((m) => ({ role: m.role, content: m.content.slice(0, 600) }));
   let cumul = '';
   const res = await contexte.completion(
     {
       messages: [
-        { role: 'system', content: `${SYSTEME}\n\nFICHES :\n${contexteFiches(sources) || '(aucune fiche trouvée)'}` },
-        ...historique.slice(-4),
+        {
+          role: 'system',
+          content: `${SYSTEME}\n\nSOURCES :\n${contexteFiches(sources) || '(aucune source trouvée)'}${
+            situation ? `\n\nCE QUE LA PERSONNE A DÉJÀ DIT :\n${situation}` : ''
+          }`,
+        },
+        ...recents,
         { role: 'user', content: question },
       ],
-      n_predict: 450,
+      n_predict: 600,
       temperature: 0.3,
       top_p: 0.9,
       enable_thinking: false, // Qwen3 : pas de « réflexion » à rallonge, on veut une réponse rapide

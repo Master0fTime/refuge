@@ -196,6 +196,37 @@ export const PROBLEMES: Probleme[] = [
     },
   },
   {
+    id: 'faim',
+    label: 'On n’a plus rien à manger',
+    icone: 'restaurant',
+    couleur: '#eab308',
+    commun: {
+      immediat: [
+        'Pas de panique : on tient des semaines sans manger, mais seulement 3 jours sans eau. Vérifie d’abord que l’eau est assurée.',
+        'Économise ton énergie : peu d’effort, rester au chaud.',
+        'S’il y a des enfants, des malades ou des personnes âgées, ils mangent en premier.',
+      ],
+      ensuite: ['Ne mange jamais une plante ou un champignon que tu n’identifies pas à 100 %.'],
+      fiches: ['faim-priorites', 'rationner'],
+    },
+    lieux: {
+      ville: {
+        immediat: [
+          'Cherche l’aide organisée : mairie, Croix-Rouge, Restos du Cœur, Secours populaire, lieux de culte. Écoute la radio locale pour les points de distribution.',
+          'Demande aux voisins et aux commerçants du quartier, en proposant un échange ou ton aide.',
+        ],
+        ensuite: ['Évite les attroupements devant les magasins en période de troubles.'],
+        fiches: ['nourriture-ville', 'conflit-securite'],
+      },
+      maison: {
+        immediat: ['Fais l’inventaire complet des placards : on oublie souvent des conserves, du riz, des pâtes, du sucre.', 'Mange d’abord ce qui se périme (frigo, puis congélateur).'],
+        fiches: ['rationner', 'nourriture-ville'],
+      },
+      nature: { ensuite: ['Plantes faciles et sûres : ortie (cuite), pissenlit, plantain, mûres, à condition de les reconnaître avec certitude.'], fiches: ['plantes-comestibles'] },
+      montagne: { fiches: ['plantes-comestibles', 'hypothermie'] },
+    },
+  },
+  {
     id: 'nuit',
     label: 'Je dois passer la nuit dehors',
     icone: 'moon',
@@ -221,6 +252,8 @@ export const PROBLEMES: Probleme[] = [
         { label: 'Inondation / eau qui monte' },
         { label: 'Incendie / feu de forêt' },
         { label: 'Alerte nucléaire ou chimique' },
+        { label: 'Tirs ou explosions près de moi', fiche: 'conflit-tirs' },
+        { label: 'Émeutes, troubles, guerre civile' },
         { label: 'Autre' },
       ],
     },
@@ -231,7 +264,7 @@ export const PROBLEMES: Probleme[] = [
         'Ne pas téléphoner, sauf urgence vitale : SMS uniquement, pour ne pas saturer le réseau.',
       ],
       ensuite: ['Prévenir ton groupe : SMS au contact relais, puis appliquer le plan.'],
-      fiches: ['priorites', 'comms-plan', 'kit-72h'],
+      fiches: ['priorites', 'evacuer', 'conflit-securite', 'comms-plan', 'kit-72h'],
     },
     lieux: {
       maison: {
@@ -264,7 +297,7 @@ export const PROBLEMES: Probleme[] = [
         'Ne rien risquer pour des objets : donne ce qu’on te demande.',
       ],
       ensuite: ['Prévenir un proche de ta position (onglet Groupe → partager ma position).'],
-      fiches: ['comms-sans-internet'],
+      fiches: ['conflit-securite', 'conflit-tirs', 'moral-stress', 'comms-sans-internet'],
     },
   },
 ];

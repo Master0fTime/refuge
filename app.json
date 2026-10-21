@@ -8,7 +8,10 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "org.refuge.app"
+      "bundleIdentifier": "org.refuge.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Refuge utilise le micro pour comprendre tes questions. Le son reste sur ton téléphone."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -85,6 +88,14 @@
         "projectId": "f75227d6-903d-42c1-abed-11a61cba21d8"
       }
     },
-    "owner": "mboccard"
+    "owner": "mboccard",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f75227d6-903d-42c1-abed-11a61cba21d8",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    }
   }
 }
