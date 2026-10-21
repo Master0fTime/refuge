@@ -5,7 +5,7 @@ import { Linking, View } from 'react-native';
 import { BoutonsStatut } from '@/components/BoutonsStatut';
 import { Bouton, Carte, Ecran, Ligne, Sous, Texte } from '@/components/ui';
 import { FICHES } from '@/data/fiches';
-import { apkDisponible, appliquerContenu } from '@/lib/mises-a-jour';
+import { appliquerContenu, useApkDisponible } from '@/lib/mises-a-jour';
 import { telephonePret } from '@/lib/packs';
 import { usePays } from '@/lib/pays';
 import { useStored } from '@/lib/store';
@@ -17,7 +17,7 @@ export default function Urgence() {
   const [pret, setPret] = useState<boolean | null>(null);
   const [accueilVu, setAccueilVu] = useStored<boolean>('accueilVu', false);
   const { isUpdatePending, isUpdateAvailable } = useUpdates();
-  const nouvelApk = apkDisponible();
+  const nouvelApk = useApkDisponible();
   const [pays] = usePays();
 
   useFocusEffect(

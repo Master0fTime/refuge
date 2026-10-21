@@ -4,7 +4,7 @@ import { Alert, View } from 'react-native';
 import { Bouton, Carte, Ecran, Sous, Texte, Titre } from '@/components/ui';
 import { NOUVEAUTES } from '@/data/version';
 import { formatTaille } from '@/lib/ia/modeles';
-import { apkDisponible, appliquerContenu, installerApk, verifierContenu, versionInstallee, type EtatContenu } from '@/lib/mises-a-jour';
+import { useApkDisponible, appliquerContenu, installerApk, verifierContenu, versionInstallee, type EtatContenu } from '@/lib/mises-a-jour';
 import { c } from '@/lib/theme';
 
 const date = (d: Date | string) =>
@@ -12,7 +12,7 @@ const date = (d: Date | string) =>
 
 export default function MisesAJour() {
   const v = versionInstallee();
-  const apk = apkDisponible();
+  const apk = useApkDisponible();
   const { isUpdatePending, isUpdateAvailable, isDownloading, downloadProgress, availableUpdate } = useUpdates();
   const [etat, setEtat] = useState<EtatContenu | 'verif' | null>(null);
   const [progresApk, setProgresApk] = useState<number | null>(null);

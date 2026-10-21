@@ -2,13 +2,18 @@ import * as Application from 'expo-application';
 import * as FS from 'expo-file-system/legacy';
 import * as IntentLauncher from 'expo-intent-launcher';
 import * as Updates from 'expo-updates';
+import { useEffect } from 'react';
 import { Platform } from 'react-native';
-import { DERNIER_APK } from '@/data/version';
+import { DERNIER_APK, type VersionApk } from '@/data/version';
+import { KEYS, lire, useStored, write } from '@/lib/store';
 
 // Deux sortes de mises à jour, un seul bouton pour l'utilisateur :
 // 1. contenu et code (fiches, écrans, IA) : EAS Update, appliqué en redémarrant l'appli ;
 // 2. nouvelle version complète (nouveaux modules natifs) : l'APK est téléchargé puis installé
 //    par l'appli elle-même. Android demande seulement de confirmer, les données sont conservées.
+//    Les APK sont publiés sur GitHub Releases (liens permanents), sous le nom refuge-<versionCode>.apk.
+
+const RELEASES = 'https://api.github.com/repos/Master0fTime/refuge/releases/latest';
 
 export function versionInstallee() {
   return {
@@ -20,10 +25,51 @@ export function versionInstallee() {
   };
 }
 
-/** Un APK plus récent est-il connu (par les données reçues en mise à jour automatique) ? */
-export function apkDisponible() {
-  if (Platform.OS !== 'android' || !DERNIER_APK) return null;
-  return DERNIER_APK.versionCode > versionInstallee().build ? DERNIER_APK : null;
+/** Le plus récent des APK connus : celui de GitHub (dernière vérification) ou celui reçu en mise à jour automatique. */
+function plusRecent(enLigne: VersionApk | null) {
+  if (Platform.OS !== 'android') return null;
+  const apk = [DERNIER_APK, enLigne].reduce<VersionApk | null>((a, b) => (b && (!a || b.versionCode > a.versionCode) ? b : a), null);
+  return apk && apk.versionCode > versionInstallee().build ? apk : null;
+}
+
+/** Un APK plus récent est-il connu ? (sans réseau : on garde le résultat de la dernière vérification) */
+export const apkDisponible = () => plusRecent(lire<VersionApk | null>(KEYS.apkGithub, null));
+
+/** Demande à GitHub la dernière version publiée. Sans Internet, rien ne change. */
+export async function chercherApk() {
+  if (__DEV__ || Platform.OS !== 'android') return;
+  const arret = new AbortController();
+  const minuteur = setTimeout(() => arret.abort(), 8000); // pas d'attente infinie sur un réseau saturé
+  try {
+    const r = await fetch(RELEASES, { headers: { Accept: 'application/vnd.github+json' }, signal: arret.signal });
+    if (!r.ok) return;
+    const rel = await r.json();
+    for (const a of rel.assets ?? []) {
+      const m = /^refuge-(\d+)\.apk$/.exec(a.name);
+      if (!m) continue;
+      write<VersionApk>(KEYS.apkGithub, {
+        versionCode: Number(m[1]),
+        version: String(rel.tag_name).replace(/^v/, ''),
+        url: a.browser_download_url,
+        octets: a.size,
+        date: rel.published_at,
+      });
+      return;
+    }
+  } catch {
+    // Hors ligne ou GitHub injoignable : on réessaiera à la prochaine ouverture.
+  } finally {
+    clearTimeout(minuteur);
+  }
+}
+
+/** Version « hook » : vérifie GitHub à l'ouverture de l'écran et se met à jour dès qu'un APK est trouvé. */
+export function useApkDisponible() {
+  const [enLigne] = useStored<VersionApk | null>(KEYS.apkGithub, null);
+  useEffect(() => {
+    chercherApk();
+  }, []);
+  return plusRecent(enLigne);
 }
 
 export type EtatContenu = 'a-jour' | 'disponible' | 'prete' | 'hors-ligne' | 'indisponible';
@@ -54,7 +100,7 @@ export async function installerApk(onProgres: (fraction: number) => void) {
       onProgres(totalBytesWritten / (totalBytesExpectedToWrite > 0 ? totalBytesExpectedToWrite : apk.octets)),
     );
     const r = await tache.downloadAsync();
-    if (!r || r.status >= 400) throw new Error('Téléchargement impossible. Le lien a peut-être expiré : réessaie plus tard.');
+    if (!r || r.status >= 400) throw new Error('Téléchargement impossible : vérifie ta connexion et réessaie.');
   }
   onProgres(1);
   const uri = await FS.getContentUriAsync(dest);

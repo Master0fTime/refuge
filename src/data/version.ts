@@ -19,6 +19,14 @@ export const DERNIER_APK: VersionApk | null = null;
 /** Notes de version, la plus récente en premier. Affichées dans « Mises à jour ». */
 export const NOUVEAUTES: { version: string; date: string; points: string[] }[] = [
   {
+    version: '0.7.3',
+    date: '2026-10-22',
+    points: [
+      'Refuge est désormais un projet ouvert sur GitHub (github.com/Master0fTime/refuge).',
+      'Les nouvelles versions complètes sont cherchées directement sur GitHub : le lien de téléchargement n’expire plus.',
+    ],
+  },
+  {
     version: '0.7.2',
     date: '2026-10-22',
     points: [

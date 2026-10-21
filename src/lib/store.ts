@@ -48,4 +48,5 @@ export const KEYS = {
   voix: 'voix',
   reperes: 'reperes',
   langue: 'langue',
+  apkGithub: 'apkGithub',
 } as const;
