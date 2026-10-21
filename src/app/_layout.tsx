@@ -31,6 +31,7 @@ export default function RootLayout() {
         <Stack.Screen name="pays" options={{ title: 'Pays, langue et numéros' }} />
         <Stack.Screen name="reglages-voix" options={{ title: 'Voix de l’IA' }} />
         <Stack.Screen name="cartes" options={{ title: 'Cartes hors ligne' }} />
+        <Stack.Screen name="mises-a-jour" options={{ title: 'Mises à jour' }} />
         <Stack.Screen name="recevoir" options={{ title: 'Récupérer depuis un proche' }} />
         <Stack.Screen name="fiche/[id]" options={{ title: '' }} />
         <Stack.Screen name="groupe/[id]" options={{ title: 'Groupe' }} />

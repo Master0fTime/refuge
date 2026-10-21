@@ -6,7 +6,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 import { Bouton, Carte, Ecran, Ligne, Sous, Texte, Titre } from '@/components/ui';
 import { espaceLibre, finaliser, formatTaille, MODELES, preparerDossier, telecharger } from '@/lib/ia/modeles';
-import { redemarrer, verifierMaj, type EtatMaj } from '@/lib/maj';
 import { tailleEstimee, telechargerZone, zonePays } from '@/lib/cartes';
 import { packPret, packs, type Pack } from '@/lib/packs';
 import { useLangue } from '@/lib/langue';
@@ -25,7 +24,6 @@ export default function Preparer() {
   const [enCours, setEnCours] = useState<string | null>(null);
   const [libre, setLibre] = useState<number | null>(null);
   const [wifi, setWifi] = useState<boolean | null>(null);
-  const [maj, setMaj] = useState<EtatMaj | 'verif' | null>(null);
 
   const rafraichir = useCallback(async () => {
     const r: Record<string, boolean> = {};
@@ -39,8 +37,6 @@ export default function Preparer() {
 
   useEffect(() => {
     rafraichir();
-    setMaj('verif');
-    verifierMaj().then(setMaj);
   }, [rafraichir]);
 
   const aInstaller = liste.filter((p) => p.disponible && p.fichier && !prets[p.id]);
@@ -134,20 +130,7 @@ Réessaie depuis l’onglet Carte.`);
       <Bouton label="Partager Refuge à mes proches" icone="share-social" discret onPress={() => router.push('/partager')} />
 
       <Sous>Mises à jour</Sous>
-      <Carte>
-        <Texte>
-          {maj === 'verif' && 'Recherche de mise à jour…'}
-          {maj === 'a-jour' && 'Refuge est à jour ✓'}
-          {maj === 'prete' && 'Une nouvelle version est prête.'}
-          {maj === 'hors-ligne' && 'Pas de connexion : impossible de vérifier. Réessaie quand tu as Internet.'}
-          {maj === 'indisponible' && 'Vérification indisponible dans cette version.'}
-        </Texte>
-        {maj === 'prete' ? (
-          <Bouton label="Redémarrer pour mettre à jour" icone="refresh" onPress={redemarrer} />
-        ) : (
-          <Bouton label="Vérifier maintenant" icone="cloud-download" discret onPress={() => (setMaj('verif'), verifierMaj().then(setMaj))} />
-        )}
-      </Carte>
+      <Ligne titre="Mises à jour de Refuge" sous="Vérifier et installer en un bouton" icone="refresh-circle" onPress={() => router.push('/mises-a-jour')} />
 
       <Bouton label={toutPret ? 'Commencer' : 'Plus tard'} discret={!toutPret} onPress={() => router.back()} />
     </Ecran>

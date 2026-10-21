@@ -72,3 +72,38 @@ npx eas-cli@latest update --channel preview --message "Nouvelles fiches"
 - v0.3 : cartes hors ligne MapLibre + PMTiles OpenStreetMap ; recherche par le sens (embeddings + sqlite-vec)
 - v0.4 : partage P2P (Wi-Fi Direct / Nearby) de l'appli et des packs, intégration Meshtastic
 - Contenu : passer de 31 à plusieurs centaines de fiches (manuels du domaine public, Wikipédia ZIM)
+
+## Publier une mise à jour (v0.7 et suivantes)
+
+Les utilisateurs n'installent l'APK **qu'une fois**. Ensuite, tout passe par l'écran « Mises à jour » de l'appli. L'accueil signale toute mise à jour disponible mais pas encore installée.
+
+### 1. Mise à jour de contenu ou de code (cas le plus courant)
+
+Fiches, écrans, IA, corrections : tout ce qui n'ajoute pas de module natif.
+
+1. Ajouter une entrée en tête de `NOUVEAUTES` dans `src/data/version.ts`.
+2. Publier :
+
+```bash
+npx eas-cli@latest update --channel preview --environment preview --platform android --message "Ce qui change"
+```
+
+Les téléphones la téléchargent seuls au lancement, puis proposent « Installer maintenant ».
+
+### 2. Nouvelle version complète (nouveau module natif)
+
+1. Construire l'APK : `npx eas-cli@latest build -p android --profile preview`. Le numéro de version (versionCode) s'incrémente tout seul.
+2. Renseigner `DERNIER_APK` dans `src/data/version.ts` : versionCode, version, URL de l'APK, taille, date. Commiter.
+3. **Prévenir les téléphones qui ont l'ancienne version** : publier une mise à jour de contenu *pour l'ancienne version native*, c'est-à-dire depuis le commit de la version précédente. L'empreinte native (runtimeVersion) doit être celle de l'ancien APK.
+
+```bash
+git worktree add ../refuge-ancien <commit-de-la-version-precedente>
+cp src/data/version.ts ../refuge-ancien/src/data/version.ts
+cd ../refuge-ancien && npm ci && npx eas-cli@latest update --channel preview --environment preview --platform android --message "Nouvelle version disponible"
+```
+
+L'écran « Mises à jour » des anciens téléphones propose alors « Télécharger et installer ». Android demande de confirmer, et les données sont conservées (même clé de signature EAS).
+
+> Les APK hébergés par Expo (offre gratuite) expirent après environ 30 jours. À terme, les déposer sur GitHub Releases et mettre ce lien dans `DERNIER_APK`.
+
+> Depuis la v0.7, l'APK embarque d'avance de nombreux modules natifs (vibrations, luminosité, batterie, SMS, contacts, capteurs, photos, impression, notifications, sons). Les fonctions futures qui s'en servent arriveront donc par simple mise à jour de contenu.

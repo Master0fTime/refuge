@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Linking, View } from 'react-native';
 import { Bouton, Carte, Ecran, Ligne, Sous, Texte } from '@/components/ui';
 import { FICHES } from '@/data/fiches';
-import { redemarrer } from '@/lib/maj';
+import { apkDisponible, appliquerContenu } from '@/lib/mises-a-jour';
 import { telephonePret } from '@/lib/packs';
 import { usePays } from '@/lib/pays';
 import { useStored } from '@/lib/store';
@@ -14,7 +14,8 @@ export default function Urgence() {
   const vitales = FICHES.filter((f) => f.cat === 'vital');
   const [pret, setPret] = useState<boolean | null>(null);
   const [accueilVu, setAccueilVu] = useStored<boolean>('accueilVu', false);
-  const { isUpdatePending } = useUpdates();
+  const { isUpdatePending, isUpdateAvailable } = useUpdates();
+  const nouvelApk = apkDisponible();
   const [pays] = usePays();
 
   useFocusEffect(
@@ -39,10 +40,19 @@ export default function Urgence() {
           <Bouton label="Préparer mon téléphone" icone="download" couleur={c.ok} grand onPress={() => router.push('/preparer')} />
         </Carte>
       )}
-      {isUpdatePending && (
+      {(nouvelApk || isUpdatePending || isUpdateAvailable) && (
         <Carte couleur={c.info}>
-          <Texte>Une mise à jour de Refuge est prête.</Texte>
-          <Bouton label="Redémarrer pour l’installer" icone="refresh" couleur={c.info} onPress={redemarrer} />
+          <Texte>
+            {nouvelApk
+              ? `Nouvelle version de Refuge disponible (${nouvelApk.version}) : elle n’est pas encore installée.`
+              : 'Une mise à jour de Refuge est disponible et n’est pas encore installée.'}
+          </Texte>
+          <Bouton
+            label={isUpdatePending && !nouvelApk ? 'Installer maintenant' : 'Voir la mise à jour'}
+            icone="refresh"
+            couleur={c.info}
+            onPress={() => (isUpdatePending && !nouvelApk ? appliquerContenu() : router.push('/mises-a-jour'))}
+          />
         </Carte>
       )}
 
@@ -78,8 +88,9 @@ export default function Urgence() {
       <Ligne titre="Ma carte de vie" sous="Groupe sanguin, allergies, contacts" icone="id-card" onPress={() => router.push('/moi')} />
       <Ligne titre="Lampe, SOS, boussole, GPS" icone="flashlight" onPress={() => router.push('/outils')} />
       <Ligne titre="Partager Refuge sans Internet" sous="Wi-Fi local + QR code, sans tes données privées" icone="share-social" onPress={() => router.push('/partager')} />
+      <Ligne titre="Mises à jour de Refuge" sous="Version installée, nouveautés, installer en un bouton" icone="refresh-circle" onPress={() => router.push('/mises-a-jour')} />
       <Ligne
-        titre="Téléchargements et mises à jour"
+        titre="Téléchargements hors ligne"
         sous={pret ? 'Téléphone prêt ✓' : 'IA, voix, contenus hors ligne'}
         icone="cloud-download"
         onPress={() => router.push('/preparer')}
