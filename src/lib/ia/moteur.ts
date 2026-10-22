@@ -3,7 +3,7 @@ import { consigneLangue } from '@/lib/langue';
 import { resumePaysCourt } from '@/lib/pays';
 import type { PassageEncyclopedie } from '@/lib/encyclopedie';
 import { termes, texteFiche, type Resultat } from '@/lib/recherche';
-import { chemin, type Modele } from './modeles';
+import { chemin, VISION, type Modele } from './modeles';
 import { t } from '@/i18n';
 
 // Un seul modèle chargé à la fois : la mémoire du téléphone est précieuse.
@@ -166,6 +166,69 @@ export async function repondre(
       throw new Error(t('Génération impossible : {erreur} (premier essai : {premiere})', { erreur: message(e2), premiere: message(e) }));
     }
   }
+}
+
+// Consignes pour une photo. La dernière ligne (« SUJET : … ») sert à chercher les fiches et
+// l'encyclopédie ; l'appli la retire de la réponse affichée.
+const SYSTEME_VISION = `Tu es Refuge, un assistant de survie qui fonctionne sans Internet. La personne t'envoie une photo.
+1. Dis ce que tu vois en une ou deux phrases, et si tu en es sûr ou non.
+2. S'il y a du texte (boîte de médicament, notice, panneau, étiquette) : recopie les mots importants (nom, dosage écrit).
+3. Réponds ensuite à sa question, en phrases courtes, avec le tutoiement.
+Règles absolues :
+- Champignon, plante, baie, fruit sauvage : ne dis JAMAIS que c'est comestible, sans danger ou facile à reconnaître. Une photo ne suffit pas, même pour un expert.
+- Médicament : ne donne aucune dose qui n'est pas écrite sur la photo. Dis de lire la notice.
+- Blessure, brûlure, morsure : donne les premiers gestes et dis d'appeler le 112 si c'est grave.
+- Si tu ne reconnais pas, dis-le simplement.
+Termine par une ligne seule : « SUJET : » suivi du nom de ce que tu vois, en 1 à 3 mots.`;
+
+/** Analyse une photo (modèle vision). Renvoie la réponse et le sujet reconnu, pour la recherche. */
+export async function analyserImage(
+  image: string,
+  question: string,
+  onTexte: (texteCumule: string) => void,
+  onPhase?: (p: Phase) => void,
+) {
+  await charger(VISION);
+  if (!(await contexte!.isMultimodalEnabled())) {
+    // Image réduite à 256 « jetons » : moins précis qu'en haute définition, mais 3 à 4 fois plus rapide.
+    const ok = await contexte!.initMultimodal({ path: chemin(VISION.projecteur), use_gpu: false, image_max_tokens: 256 });
+    if (!ok) throw new Error(t('La vision n’a pas pu démarrer sur ce téléphone.'));
+  }
+  const nettoyer = (x: string) => x.replace(/<think>[\s\S]*?(<\/think>|$)/g, '').trimStart();
+  let cumul = '';
+  let ecrit = false;
+  onPhase?.('lecture');
+  const res = await contexte!.completion(
+    {
+      messages: [
+        { role: 'system', content: `${SYSTEME_VISION}\n${consigneLangue()}` },
+        {
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: image } },
+            { type: 'text', text: question.trim() || t('Qu’est-ce que c’est ? Que dois-je savoir ?') },
+          ],
+        },
+      ],
+      n_predict: 350,
+      temperature: 0.2,
+      top_p: 0.9,
+      jinja: true,
+    },
+    (d) => {
+      if (!ecrit) {
+        ecrit = true;
+        onPhase?.('ecriture');
+      }
+      cumul = d.content !== undefined ? d.content : cumul + d.token;
+      // La ligne « SUJET : » est technique : on ne l'affiche pas.
+      onTexte(nettoyer(cumul).replace(/\n?\s*\**\s*(SUJET|SUBJECT|THEMA|SOGGETTO)\s*\**\s*:[^\n]*\s*$/i, ''));
+    },
+  );
+  const brut = nettoyer(res.content || res.text || cumul);
+  const sujet = /(?:SUJET|SUBJECT|THEMA|SOGGETTO)\s*\**\s*:\s*\**\s*([^\n*]+)/i.exec(brut)?.[1]?.trim() ?? '';
+  const texte = brut.replace(/\n?\s*\**\s*(SUJET|SUBJECT|THEMA|SOGGETTO)\s*\**\s*:[^\n]*/gi, '').trim();
+  return { texte, sujet };
 }
 
 /** Diagnostic : temps de chargement, délai avant le premier mot, vitesse d'écriture. */

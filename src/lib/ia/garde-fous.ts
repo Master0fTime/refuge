@@ -62,6 +62,47 @@ const REGLES: { motif: RegExp; alerte: Alerte }[] = [
   { motif: /violen|agress|frappe|menace|gewalt|uberfall|bedroh|minacc/, alerte: { label: 'Danger : {police} ou 112. {smsSilencieux}', tel: '{police}' } },
 ];
 
+// Après une photo : avertissements FIXES, quoi que dise l'IA. Une erreur sur un champignon peut tuer.
+// `partout` : la règle regarde aussi toute la réponse de l'IA, pas seulement le sujet et la question.
+const PLANTE = 'Plante ou baie : ne mange rien que tu n’as pas identifié avec certitude. En cas d’ingestion : {antipoisonNom} ({antipoison})';
+const REGLES_PHOTO: { motif: RegExp; alerte: Alerte; partout?: boolean }[] = [
+  {
+    motif: /champignon|amanite|cepe|bolet|girolle|morille|mushroom|fung|toadstool|pilz|steinpilz|knollenblatter|fungh|porcin/,
+    alerte: { label: 'Champignon : ne le mange JAMAIS sur la foi d’une photo. En cas d’ingestion : {antipoisonNom} ({antipoison})', tel: '{antipoison}' },
+    partout: true,
+  },
+  // Mots généraux : seulement dans le sujet (« herbe » dans la description d'un paysage ne compte pas).
+  { motif: /plante|\bplant\b|feuille|fleur|\bherbe|pflanze|blatt|blute|kraut|pianta|foglia|fiore|\berba\b/, alerte: { label: PLANTE, tel: '{antipoison}' } },
+  // Plantes, baies courantes et toute mention de « comestible » : partout, réponse comprise.
+  {
+    motif: /plante|pflanze|pianta|\bbaie|berry|berries|beere|\bbacc|myrtill|\bmure|framboise|sureau|belladon|fruit sauvage|heidelbeer|brombeer|himbeer|holunder|tollkirsch|mirtill|\bmora\b|lampon|sambuc|comestible|edible|essbar|commestibil/,
+    alerte: { label: PLANTE, tel: '{antipoison}' },
+    partout: true,
+  },
+  {
+    motif: /medicament|comprime|gelule|pilule|sirop|notice|medicine|tablet|pill|capsule|medikament|tablette|arznei|beipackzettel|farmaco|medicin|compress|pastiglia|capsul|bugiardino|\d+\s?mg\b/,
+    alerte: { label: 'Médicament : vérifie le nom et la dose sur la boîte et la notice. En cas de doute : {antipoisonNom} ({antipoison})', tel: '{antipoison}' },
+  },
+];
+
+/** Avertissements après une photo. `sujet` = ce que l'IA a reconnu + la question ; `reponse` = son texte. */
+export function detecterPhoto(sujet: string, reponse: string): Alerte[] {
+  const norm = (x: string) =>
+    x
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '');
+  const court = norm(sujet);
+  const tout = `${court} ${norm(reponse)}`;
+  const vues = new Set<string>();
+  return [
+    ...REGLES_PHOTO.filter(({ motif, partout, alerte }) => motif.test(partout ? tout : court) && !vues.has(alerte.label) && vues.add(alerte.label)).map(
+      ({ alerte: a }) => ({ ...a, label: localiser(t(a.label)), tel: a.tel && localiser(a.tel).replace(/\s/g, '') }),
+    ),
+    ...detecter(`${sujet} ${reponse}`),
+  ];
+}
+
 export function detecter(q: string): Alerte[] {
   const texte = q
     .toLowerCase()

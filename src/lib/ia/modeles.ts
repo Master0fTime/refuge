@@ -45,6 +45,30 @@ export const MODELES: Modele[] = [
 ];
 
 /**
+ * Vision (optionnelle) : reconnaît ce qu'il y a sur une photo (objet, lieu, boîte de médicament…).
+ * Deux fichiers : le modèle (Qwen3-VL 2B, Apache 2.0) et son « projecteur » qui transforme l'image en mots.
+ */
+export type ModeleVision = Modele & { projecteur: Telechargeable };
+
+export const VISION: ModeleVision = {
+  id: 'vision',
+  nom: 'Vision (Qwen3-VL 2B)',
+  description: 'Reconnaît ce qu’il y a sur une photo : lieu, objet, boîte de médicament, plante… Compte 30 secondes à 2 minutes par photo.',
+  fichier: 'Qwen3VL-2B-Instruct-Q4_K_M.gguf',
+  url: 'https://huggingface.co/Qwen/Qwen3-VL-2B-Instruct-GGUF/resolve/main/Qwen3VL-2B-Instruct-Q4_K_M.gguf',
+  octets: 1107409952,
+  ramMinGo: 6,
+  projecteur: {
+    fichier: 'mmproj-Qwen3VL-2B-Instruct-Q8_0.gguf',
+    url: 'https://huggingface.co/Qwen/Qwen3-VL-2B-Instruct-GGUF/resolve/main/mmproj-Qwen3VL-2B-Instruct-Q8_0.gguf',
+    octets: 445053216,
+  },
+};
+
+/** Les deux fichiers de la vision, à télécharger ou partager ensemble. */
+export const FICHIERS_VISION: Telechargeable[] = [VISION, VISION.projecteur];
+
+/**
  * Dossier servi lors du partage hors ligne. Il ne contient QUE ce qui peut être transmis (packs, page
  * d'accueil) : les données privées (carte de vie, groupes, base SQLite) sont stockées ailleurs.
  */
@@ -124,4 +148,9 @@ export async function importer<T extends Telechargeable>(liste: T[]): Promise<T 
   await preparerDossier();
   await FS.copyAsync({ from: doc.uri, to: chemin(m) });
   return m;
+}
+
+export async function visionInstallee() {
+  for (const f of FICHIERS_VISION) if (!(await estInstalle(f))) return false;
+  return true;
 }

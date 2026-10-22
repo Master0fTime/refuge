@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 import type { DownloadResumable } from 'expo-file-system/legacy';
+import { CarteVision } from '@/components/CarteVision';
 import { Bouton, Carte, Ecran, Sous, Texte, Titre } from '@/components/ui';
 import { liberer, tester } from '@/lib/ia/moteur';
 import {
@@ -191,6 +192,9 @@ export default function ReglagesIA() {
           </Carte>
         );
       })}
+
+      <Sous>{t("Comprendre une photo")}</Sous>
+      <CarteVision />
 
       <Sous>{t("Diagnostic")}</Sous>
       <Bouton

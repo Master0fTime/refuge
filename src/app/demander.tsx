@@ -1,15 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useKeepAwake } from 'expo-keep-awake';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Reflexion, type Etape as EtapeReflexion } from '@/components/Reflexion';
 import { TexteRiche } from '@/components/TexteRiche';
 import { Bouton, Carte, Texte } from '@/components/ui';
-import { detecter, type Alerte } from '@/lib/ia/garde-fous';
-import { estInstalle, MODELES } from '@/lib/ia/modeles';
-import { arreter, charger, repondre, type Message } from '@/lib/ia/moteur';
+import { detecter, detecterPhoto, type Alerte } from '@/lib/ia/garde-fous';
+import { estInstalle, MODELES, visionInstallee } from '@/lib/ia/modeles';
+import { analyserImage, arreter, charger, repondre, type Message } from '@/lib/ia/moteur';
 import { chercherEncyclopedie, type PassageEncyclopedie } from '@/lib/encyclopedie';
 import { chercher, type Resultat } from '@/lib/recherche';
 import { KEYS, useStored } from '@/lib/store';
@@ -20,6 +21,8 @@ import { t } from '@/i18n';
 type Bulle = {
   role: 'user' | 'assistant';
   texte: string;
+  /** Photo envoyée par la personne (bulle « user »). */
+  image?: string;
   sources?: Resultat[];
   encyclopedie?: PassageEncyclopedie[];
   alertes?: Alerte[];
@@ -44,6 +47,7 @@ export default function Demander() {
   const [etape, setEtape] = useState<EtapeReflexion>('chargement');
   const [iaDispo, setIaDispo] = useState<boolean | null>(null);
   const [voixDispo, setVoixDispo] = useState<boolean | null>(null);
+  const [visionDispo, setVisionDispo] = useState<boolean | null>(null);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const autoLance = useRef(false);
   const finEnCours = useRef(false);
@@ -61,6 +65,13 @@ export default function Demander() {
       arreterLecture();
     };
   }, []);
+
+  // Revenu de « IA hors ligne » après avoir installé la vision : le bouton photo marche tout de suite.
+  useFocusEffect(
+    useCallback(() => {
+      visionInstallee().then(setVisionDispo);
+    }, []),
+  );
 
   // Ouvert depuis « Parler à l'IA » : on lance directement le micro.
   useEffect(() => {
@@ -113,6 +124,56 @@ export default function Demander() {
       if (parVoix) lireReponse(finale);
     } catch (e) {
       majDerniere({ texte: t("L’IA a rencontré un problème ({v1}). Les fiches ci-dessous restent valables.", { v1: e instanceof Error ? e.message : e }), sansIA: true });
+    } finally {
+      setEtat('libre');
+    }
+  };
+
+  // Photo : la vision décrit ce qu'elle voit, puis on cherche les fiches et l'encyclopédie sur le sujet reconnu.
+  const choisirPhoto = () => {
+    if (!visionDispo) {
+      Alert.alert(t('Vision non installée'), t('Pour comprendre une photo, installe la vision depuis « IA hors ligne » (environ 1,5 Go, en Wi-Fi).'), [
+        { text: t('Plus tard') },
+        { text: t('Installer'), onPress: () => router.push('/ia') },
+      ]);
+      return;
+    }
+    const options: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 0.7 };
+    const ouvrir = async (camera: boolean) => {
+      try {
+        if (camera && !(await ImagePicker.requestCameraPermissionsAsync()).granted) return;
+        const r = camera ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
+        if (!r.canceled && r.assets[0]) envoyerPhoto(r.assets[0].uri);
+      } catch (e) {
+        Alert.alert(t('Photo'), String(e instanceof Error ? e.message : e));
+      }
+    };
+    Alert.alert(t('Envoyer une photo'), t('L’IA te dit ce qu’elle voit. Elle peut se tromper : ne mange jamais une plante ou un champignon reconnu par photo.'), [
+      { text: t('Annuler'), style: 'cancel' },
+      { text: t('Galerie'), onPress: () => ouvrir(false) },
+      { text: t('Prendre une photo'), onPress: () => ouvrir(true) },
+    ]);
+  };
+
+  const envoyerPhoto = async (image: string) => {
+    const question = q.trim();
+    setQ('');
+    arreterLecture();
+    setBulles((b) => [...b, { role: 'user', texte: question, image }, { role: 'assistant', texte: '', sansIA: true }]);
+    try {
+      setEtat('chargement');
+      setEtape('chargement');
+      const { texte, sujet } = await analyserImage(image, question, (x) => majDerniere({ texte: x }), (p) => setEtape(p === 'lecture' ? 'photo' : p));
+      setEtat('reponse');
+      const cle = [sujet, question].filter(Boolean).join(' ');
+      majDerniere({
+        texte,
+        sources: cle ? chercher(cle, 3) : [],
+        encyclopedie: sujet ? await chercherEncyclopedie(sujet, 2) : [],
+        alertes: detecterPhoto(cle, texte),
+      });
+    } catch (e) {
+      majDerniere({ texte: t('Je n’ai pas pu analyser la photo ({v1}).', { v1: e instanceof Error ? e.message : e }), alertes: detecter(question) });
     } finally {
       setEtat('libre');
     }
@@ -175,8 +236,9 @@ export default function Demander() {
         )}
         {bulles.map((b, i) =>
           b.role === 'user' ? (
-            <View key={i} style={{ alignSelf: 'flex-end', backgroundColor: c.accent, borderRadius: 14, padding: space.md, maxWidth: '85%' }}>
-              <Text style={{ color: '#000', fontSize: 16 }}>{b.texte}</Text>
+            <View key={i} style={{ alignSelf: 'flex-end', backgroundColor: c.accent, borderRadius: 14, padding: space.md, maxWidth: '85%', gap: 6 }}>
+              {!!b.image && <Image source={{ uri: b.image }} style={{ width: 200, height: 200, borderRadius: 10 }} resizeMode="cover" />}
+              {!!b.texte && <Text style={{ color: '#000', fontSize: 16 }}>{b.texte}</Text>}
             </View>
           ) : (
             <View key={i} style={{ gap: space.sm }}>
@@ -261,6 +323,9 @@ export default function Demander() {
         <View style={{ flexDirection: 'row', gap: 8, padding: space.md, paddingBottom: space.md + insets.bottom, borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.card, alignItems: 'center' }}>
           <Pressable onPress={ecouter} disabled={occupe} hitSlop={8}>
             <Ionicons name="mic-circle" size={44} color={occupe ? c.muted : c.info} />
+          </Pressable>
+          <Pressable onPress={choisirPhoto} disabled={occupe} hitSlop={8} accessibilityLabel={t('Envoyer une photo')}>
+            <Ionicons name="camera" size={34} color={occupe ? c.muted : c.info} />
           </Pressable>
           <TextInput
             value={q}

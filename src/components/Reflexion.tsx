@@ -4,11 +4,12 @@ import { Animated, Easing, Pressable, Text, View } from 'react-native';
 import { c } from '@/lib/theme';
 import { t } from '@/i18n';
 
-export type Etape = 'chargement' | 'lecture' | 'ecriture';
+export type Etape = 'chargement' | 'lecture' | 'photo' | 'ecriture';
 
 const TEXTES: Record<Etape, string> = {
   chargement: 'Je me prépare (la première fois, ça peut prendre 10 à 30 secondes)',
   lecture: 'Je réfléchis à ta situation',
+  photo: 'Je regarde ta photo (30 secondes à 2 minutes sur un téléphone)',
   ecriture: 'J’écris',
 };
 

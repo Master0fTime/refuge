@@ -4,7 +4,7 @@ import * as Sharing from 'expo-sharing';
 import { PermissionsAndroid, Platform } from 'react-native';
 import { PartageLocal } from '../../modules/partage-local';
 import { PACKS_ENCYCLOPEDIE } from '@/lib/encyclopedie';
-import { DOSSIER_PARTAGE, estInstalle, formatTaille, MODELES, type Telechargeable } from '@/lib/ia/modeles';
+import { DOSSIER_PARTAGE, estInstalle, FICHIERS_VISION, formatTaille, MODELES, visionInstallee, type Telechargeable } from '@/lib/ia/modeles';
 import { MODELES_VOIX } from '@/lib/voix';
 import { t } from '@/i18n';
 
@@ -12,7 +12,7 @@ import { t } from '@/i18n';
 // Seul le dossier `partage/` (packs + page d'accueil) et l'APK sont accessibles :
 // la carte de vie, les groupes et les contacts vivent dans SQLite, ailleurs.
 
-export type PackPartage = Telechargeable & { type: 'ia' | 'voix' | 'encyclopedie'; nom: string };
+export type PackPartage = Telechargeable & { type: 'ia' | 'voix' | 'encyclopedie' | 'vision'; nom: string };
 export type Catalogue = { app: 'refuge'; version: string; apkOctets: number; packs: PackPartage[] };
 
 export const partageDisponible = () => PartageLocal !== null;
@@ -33,6 +33,7 @@ async function packsInstalles(): Promise<PackPartage[]> {
   const out: PackPartage[] = [];
   for (const m of MODELES) if (await estInstalle(m)) out.push({ ...m, type: 'ia', nom: `IA : ${m.nom}`, url: `modeles/${m.fichier}` });
   for (const m of MODELES_VOIX) if (await estInstalle(m)) out.push({ ...m, type: 'voix', nom: m.nom, url: `modeles/${m.fichier}` });
+  if (await visionInstallee()) for (const f of FICHIERS_VISION) out.push({ ...f, type: 'vision', nom: `Vision : ${f.fichier}`, url: `modeles/${f.fichier}` });
   for (const m of PACKS_ENCYCLOPEDIE)
     if (await estInstalle(m)) out.push({ ...m, type: 'encyclopedie', nom: `Encyclopédie (${m.langue.toUpperCase()})`, url: `modeles/${m.fichier}` });
   return out;

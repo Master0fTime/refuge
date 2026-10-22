@@ -19,6 +19,15 @@ export const DERNIER_APK: VersionApk | null = null;
 /** Notes de version, la plus récente en premier. Affichées dans « Mises à jour ». */
 export const NOUVEAUTES: { version: string; date: string; points: string[] }[] = [
   {
+    version: '0.7.6',
+    date: '2026-10-22',
+    points: [
+      'Envoie une photo à l’IA (bouton 📷 dans « Poser une question ») : elle dit ce qu’elle voit (lieu, objet, boîte de médicament…) et répond à ta question, sans Internet.',
+      'À installer une fois depuis « IA hors ligne » → « Comprendre une photo » (environ 1,5 Go).',
+      'Champignons, plantes, baies, médicaments : un avertissement fixe s’affiche toujours, quoi que dise l’IA.',
+    ],
+  },
+  {
     version: '0.7.5',
     date: '2026-10-22',
     points: [
