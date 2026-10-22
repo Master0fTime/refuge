@@ -12,6 +12,7 @@ import { useLangue } from '@/lib/langue';
 import { usePays } from '@/lib/pays';
 import { KEYS, useStored } from '@/lib/store';
 import { c, space } from '@/lib/theme';
+import { t } from '@/i18n';
 
 export default function Preparer() {
   useKeepAwake(); // l'écran ne doit pas s'éteindre pendant un long téléchargement
@@ -46,7 +47,7 @@ export default function Preparer() {
 
   const installerTout = async () => {
     if (libre !== null && libre < total * 1.1) {
-      Alert.alert('Pas assez de place', `Il faut ${formatTaille(total)} libres, il reste ${formatTaille(libre)}. Libère de la place (photos, vidéos) puis réessaie.`);
+      Alert.alert(t("Pas assez de place"), t("Il faut {v1} libres, il reste {v2}. Libère de la place (photos, vidéos) puis réessaie.", { v1: formatTaille(total), v2: formatTaille(libre) }));
       return;
     }
     await preparerDossier();
@@ -56,13 +57,13 @@ export default function Preparer() {
       try {
         const tache = telecharger(f, (x) => setProgres((pr) => ({ ...pr, [p.id]: x })));
         const r = await tache.downloadAsync();
-        if (!r) throw new Error('Téléchargement interrompu.');
+        if (!r) throw new Error(t("Téléchargement interrompu."));
         await finaliser(f);
         if (p.id === 'ia' && !actif) setActif(MODELES.find((m) => m.fichier === f.fichier)?.id ?? null);
         setPrets((x) => ({ ...x, [p.id]: true }));
       } catch (e) {
         setEnCours(null);
-        Alert.alert('Téléchargement interrompu', `${p.nom} : ${e instanceof Error ? e.message : e}\nVérifie ta connexion puis appuie à nouveau sur le bouton.`);
+        Alert.alert(t("Téléchargement interrompu"), t("{nom} : {v2}\nVérifie ta connexion puis appuie à nouveau sur le bouton.", { nom: t(p.nom), v2: e instanceof Error ? e.message : e }));
         return;
       }
     }
@@ -71,8 +72,7 @@ export default function Preparer() {
       try {
         await telechargerZone(zonePays(pays), (x) => setProgres((pr) => ({ ...pr, cartes: x / 100 })));
       } catch (e) {
-        Alert.alert('Carte interrompue', `${e instanceof Error ? e.message : e}
-Réessaie depuis l’onglet Carte.`);
+        Alert.alert(t("Carte interrompue"), t("{v1}\nRéessaie depuis l’onglet Carte.", { v1: e instanceof Error ? e.message : e }));
       }
     }
     setEnCours(null);
@@ -81,25 +81,25 @@ Réessaie depuis l’onglet Carte.`);
 
   const lancer = () => {
     if (wifi === false) {
-      Alert.alert('Pas de Wi-Fi', `Tu vas télécharger ${formatTaille(total)} avec tes données mobiles. Continuer ?`, [
-        { text: 'Annuler' },
-        { text: 'Continuer', onPress: installerTout },
+      Alert.alert(t("Pas de Wi-Fi"), t("Tu vas télécharger {v1} avec tes données mobiles. Continuer ?", { v1: formatTaille(total) }), [
+        { text: t("Annuler") },
+        { text: t("Continuer"), onPress: installerTout },
       ]);
     } else installerTout();
   };
 
   return (
     <Ecran>
-      <Titre>{toutPret ? 'Ton téléphone est prêt ✅' : 'Prépare ton téléphone'}</Titre>
+      <Titre>{toutPret ? t("Ton téléphone est prêt ✅") : t("Prépare ton téléphone")}</Titre>
       <Texte muted>
         {toutPret
-          ? 'Tout ce qui est disponible est installé. Refuge fonctionne maintenant sans Internet.'
-          : 'À faire UNE FOIS, maintenant, pendant qu’Internet fonctionne. Ensuite, tout marche hors ligne.'}
+          ? t("Tout ce qui est disponible est installé. Refuge fonctionne maintenant sans Internet.")
+          : t("À faire UNE FOIS, maintenant, pendant qu’Internet fonctionne. Ensuite, tout marche hors ligne.")}
       </Texte>
 
       <Ligne
-        titre={`Pays : ${pays.drapeau} ${pays.nom} · Langue : ${langue.drapeau} ${langue.nom}`}
-        sous="Numéros d’urgence, alertes, langue de l’IA et de la voix. Touche pour changer."
+        titre={t("Pays : {drapeau} {nom} · Langue : {drapeau3} {nom4}", { drapeau: pays.drapeau, nom: t(pays.nom), drapeau3: langue.drapeau, nom4: langue.nom })}
+        sous={t("Numéros d’urgence, alertes, langue de l’IA et de la voix. Touche pour changer.")}
         icone="flag"
         onPress={() => router.push('/pays')}
       />
@@ -111,28 +111,27 @@ Réessaie depuis l’onglet Carte.`);
       {!toutPret && (
         <>
           <Bouton
-            label={enCours ? 'Installation en cours…' : `Tout installer (${formatTaille(total)})`}
+            label={enCours ? t("Installation en cours…") : t("Tout installer ({v1})", { v1: formatTaille(total) })}
             icone="download"
             grand
             onPress={() => !enCours && lancer()}
           />
           <Texte muted>
-            {wifi === false ? '⚠ Tu n’es pas en Wi-Fi. ' : ''}
-            Espace libre : {libre !== null ? formatTaille(libre) : '…'}. Laisse l’appli ouverte pendant le téléchargement.
-          </Texte>
+            {wifi === false ? t("⚠ Tu n’es pas en Wi-Fi. ") : ''}
+            {t("Espace libre : ")}{libre !== null ? formatTaille(libre) : '…'}{t(". Laisse l’appli ouverte pendant le téléchargement.")}</Texte>
         </>
       )}
 
-      <Bouton label="Ajouter la carte détaillée de ma zone" icone="map" discret onPress={() => router.push('/cartes')} />
+      <Bouton label={t("Ajouter la carte détaillée de ma zone")} icone="map" discret onPress={() => router.push('/cartes')} />
 
-      <Sous>Sans Internet</Sous>
-      <Bouton label="Récupérer depuis un proche" icone="phone-portrait" discret onPress={() => router.push('/recevoir')} />
-      <Bouton label="Partager Refuge à mes proches" icone="share-social" discret onPress={() => router.push('/partager')} />
+      <Sous>{t("Sans Internet")}</Sous>
+      <Bouton label={t("Récupérer depuis un proche")} icone="phone-portrait" discret onPress={() => router.push('/recevoir')} />
+      <Bouton label={t("Partager Refuge à mes proches")} icone="share-social" discret onPress={() => router.push('/partager')} />
 
-      <Sous>Mises à jour</Sous>
-      <Ligne titre="Mises à jour de Refuge" sous="Vérifier et installer en un bouton" icone="refresh-circle" onPress={() => router.push('/mises-a-jour')} />
+      <Sous>{t("Mises à jour")}</Sous>
+      <Ligne titre={t("Mises à jour de Refuge")} sous={t("Vérifier et installer en un bouton")} icone="refresh-circle" onPress={() => router.push('/mises-a-jour')} />
 
-      <Bouton label={toutPret ? 'Commencer' : 'Plus tard'} discret={!toutPret} onPress={() => router.back()} />
+      <Bouton label={toutPret ? t("Commencer") : t("Plus tard")} discret={!toutPret} onPress={() => router.back()} />
     </Ecran>
   );
 }
@@ -143,12 +142,12 @@ function LignePack({ p, pret, progres, actif, taille }: { p: Pack; pret: boolean
     <View style={{ backgroundColor: c.card, borderRadius: 12, padding: space.lg, gap: 6, opacity: p.disponible ? 1 : 0.6 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
         <Ionicons name={p.icone} size={26} color={couleur} />
-        <Text style={{ color: c.text, fontSize: 17, fontWeight: '700', flex: 1 }}>{p.nom}</Text>
+        <Text style={{ color: c.text, fontSize: 17, fontWeight: '700', flex: 1 }}>{t(p.nom)}</Text>
         <Text style={{ color: couleur, fontWeight: '700' }}>
-          {pret ? 'Installé' : !p.disponible ? 'Bientôt' : taille ? `≈ ${formatTaille(taille)}` : 'Inclus'}
+          {pret ? t("Installé") : !p.disponible ? t("Bientôt") : taille ? `≈ ${formatTaille(taille)}` : t("Inclus")}
         </Text>
       </View>
-      <Texte muted>{p.utilite}</Texte>
+      <Texte muted>{t(p.utilite)}</Texte>
       {actif && (
         <View style={{ height: 8, backgroundColor: c.cardAlt, borderRadius: 4, overflow: 'hidden' }}>
           <View style={{ width: `${Math.round((progres ?? 0) * 100)}%`, height: '100%', backgroundColor: c.accent }} />

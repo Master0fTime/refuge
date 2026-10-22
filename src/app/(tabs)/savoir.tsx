@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { Champ, Ecran, Ligne, s, Texte } from '@/components/ui';
+import { Champ, Ecran, Ligne, s, Sous, Texte } from '@/components/ui';
 import { CATEGORIES, FICHES } from '@/data/fiches';
+import { chercherEncyclopedie, type PassageEncyclopedie } from '@/lib/encyclopedie';
 import { chercher } from '@/lib/recherche';
 import { c } from '@/lib/theme';
 import { t, traduireFiche } from '@/i18n';
@@ -12,17 +13,35 @@ export default function Savoir() {
   const [q, setQ] = useState('');
   const [ouverte, setOuverte] = useState<string | null>(null);
   const resultats = chercher(q, 20);
+  const [encyclo, setEncyclo] = useState<PassageEncyclopedie[]>([]);
+
+  // L'encyclopédie complète les fiches ; on attend une petite pause dans la frappe avant de chercher.
+  useEffect(() => {
+    if (!q.trim()) return setEncyclo([]);
+    const minuteur = setTimeout(() => chercherEncyclopedie(q, 8).then(setEncyclo), 300);
+    return () => clearTimeout(minuteur);
+  }, [q]);
 
   return (
     <Ecran>
       <Champ label={t('Rechercher')} placeholder={t('ex. feu sans briquet, eau, plaie…')} value={q} onChangeText={setQ} />
 
       {q.trim() ? (
-        resultats.length ? (
-          resultats.map(({ fiche: f, extrait }) => <Ligne key={f.id} titre={f.titre} sous={extrait} icone="document-text" onPress={() => router.push(`/fiche/${f.id}`)} />)
-        ) : (
-          <Texte muted>{t('Aucune fiche trouvée. Essaie un autre mot.')}</Texte>
-        )
+        <>
+          {resultats.length ? (
+            resultats.map(({ fiche: f, extrait }) => <Ligne key={f.id} titre={f.titre} sous={extrait} icone="document-text" onPress={() => router.push(`/fiche/${f.id}`)} />)
+          ) : (
+            <Texte muted>{t('Aucune fiche trouvée. Essaie un autre mot.')}</Texte>
+          )}
+          {encyclo.length > 0 && (
+            <>
+              <Sous>{t('Encyclopédie (Wikipédia)')}</Sous>
+              {encyclo.map((p) => (
+                <Ligne key={p.article} titre={p.titre} sous={p.extrait} icone="library" onPress={() => router.push(`/article/${p.article}`)} />
+              ))}
+            </>
+          )}
+        </>
       ) : (
         CATEGORIES.map((cat) => (
           <View key={cat.id} style={{ gap: 6 }}>

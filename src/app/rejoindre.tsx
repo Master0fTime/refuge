@@ -9,6 +9,7 @@ import { cap, distance, formatDistance, pointCardinal } from '@/lib/geo';
 import { KEYS, useStored } from '@/lib/store';
 import { c } from '@/lib/theme';
 import type { Groupe } from '@/lib/types';
+import { t } from '@/i18n';
 
 export default function Rejoindre() {
   useKeepAwake();
@@ -17,7 +18,7 @@ export default function Rejoindre() {
   const [groupes] = useStored<Groupe[]>(KEYS.groupes, []);
   const point =
     groupes.find((g) => g.id === gid)?.points.find((p) => p.id === pid) ??
-    (lat && lon ? { nom: nom ?? 'Point', note: '', lat: Number(lat), lon: Number(lon) } : undefined);
+    (lat && lon ? { nom: nom ?? t("Point"), note: '', lat: Number(lat), lon: Number(lon) } : undefined);
 
   const [pos, setPos] = useState<Location.LocationObject | null>(null);
   const [heading, setHeading] = useState<number | null>(null);
@@ -27,7 +28,7 @@ export default function Rejoindre() {
     const subs: Location.LocationSubscription[] = [];
     (async () => {
       const { granted } = await Location.requestForegroundPermissionsAsync();
-      if (!granted) return setErreur('Autorise la localisation pour te guider.');
+      if (!granted) return setErreur(t("Autorise la localisation pour te guider."));
       subs.push(await Location.watchPositionAsync({ accuracy: Location.Accuracy.BestForNavigation, distanceInterval: 3 }, setPos));
       subs.push(await Location.watchHeadingAsync((h) => setHeading(h.trueHeading >= 0 ? h.trueHeading : h.magHeading)));
     })().catch((e) => setErreur(String(e)));
@@ -37,7 +38,7 @@ export default function Rejoindre() {
   if (!point) {
     return (
       <Ecran>
-        <Texte>Point introuvable.</Texte>
+        <Texte>{t("Point introuvable.")}</Texte>
       </Ecran>
     );
   }
@@ -59,16 +60,15 @@ export default function Rejoindre() {
         <Text style={{ color: c.text, fontSize: 44, fontWeight: '800' }}>{d !== null ? formatDistance(d) : '…'}</Text>
         {b !== null && (
           <Text style={{ color: c.muted, fontSize: 18 }}>
-            Cap {Math.round(b)}° ({pointCardinal(b)})
+            {t("Cap ")}{Math.round(b)}° ({pointCardinal(b)})
           </Text>
         )}
       </View>
 
       <Carte>
-        <Texte>La flèche indique la direction à vol d’oiseau. Tiens le téléphone à plat, loin des objets métalliques.</Texte>
+        <Texte>{t("La flèche indique la direction à vol d’oiseau. Tiens le téléphone à plat, loin des objets métalliques.")}</Texte>
         <Texte muted>
-          Précision GPS : {pos?.coords.accuracy ? `±${Math.round(pos.coords.accuracy)} m` : 'recherche des satellites…'}. Fonctionne sans Internet ; dehors, c’est plus rapide.
-        </Texte>
+          {t("Précision GPS : ")}{pos?.coords.accuracy ? `±${Math.round(pos.coords.accuracy)} m` : t("recherche des satellites…")}{t(". Fonctionne sans Internet ; dehors, c’est plus rapide.")}</Texte>
       </Carte>
     </Ecran>
   );

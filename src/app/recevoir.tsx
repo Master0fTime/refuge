@@ -8,6 +8,7 @@ import { estInstalle, finaliser, formatTaille, MODELES, modeleConseille, prepare
 import { lireCatalogue, type Catalogue, type PackPartage } from '@/lib/partage-hors-ligne';
 import { KEYS, useStored } from '@/lib/store';
 import { c } from '@/lib/theme';
+import { t } from '@/i18n';
 
 export default function Recevoir() {
   useKeepAwake();
@@ -35,8 +36,8 @@ export default function Recevoir() {
     } catch (e) {
       lu.current = false;
       Alert.alert(
-        'Connexion impossible',
-        `${e instanceof Error ? e.message : e}\n\nVérifie que tu es bien connecté au Wi-Fi du téléphone partageur (premier QR code).`,
+        t("Connexion impossible"),
+        t("{v1}\n\nVérifie que tu es bien connecté au Wi-Fi du téléphone partageur (premier QR code).", { v1: e instanceof Error ? e.message : e }),
       );
     }
   };
@@ -54,39 +55,39 @@ export default function Recevoir() {
       try {
         const f = { fichier: p.fichier, octets: p.octets, url: `${source.base}/${p.url}` };
         const r = await telecharger(f, (x) => setProgres((pr) => ({ ...pr, [p.fichier]: x }))).downloadAsync();
-        if (!r) throw new Error('Téléchargement interrompu.');
+        if (!r) throw new Error(t("Téléchargement interrompu."));
         await finaliser(f);
         setDeja((d) => ({ ...d, [p.fichier]: true }));
         if (p.type === 'ia' && !actif) setActif(MODELES.find((m) => m.fichier === p.fichier)?.id ?? null);
       } catch (e) {
         setEnCours(false);
-        Alert.alert('Copie interrompue', `${p.nom} : ${e instanceof Error ? e.message : e}\nRapproche-toi du téléphone partageur et réessaie.`);
+        Alert.alert(t("Copie interrompue"), t("{nom} : {v2}\nRapproche-toi du téléphone partageur et réessaie.", { nom: t(p.nom), v2: e instanceof Error ? e.message : e }));
         return;
       }
     }
     setEnCours(false);
-    Alert.alert('C’est fait', 'Refuge est prêt à fonctionner sans Internet.', [{ text: 'OK', onPress: () => router.back() }]);
+    Alert.alert(t("C’est fait"), t("Refuge est prêt à fonctionner sans Internet."), [{ text: 'OK', onPress: () => router.back() }]);
   };
 
   if (source) {
     const packs = source.catalogue.packs;
     return (
       <Ecran>
-        <Titre>Packs disponibles</Titre>
-        <Texte muted>Copiés directement depuis le téléphone de ton proche, sans Internet.</Texte>
-        {packs.length === 0 && <Texte>Ce téléphone ne partage aucun pack (il n’a pas encore installé l’IA ni la voix).</Texte>}
+        <Titre>{t("Packs disponibles")}</Titre>
+        <Texte muted>{t("Copiés directement depuis le téléphone de ton proche, sans Internet.")}</Texte>
+        {packs.length === 0 && <Texte>{t("Ce téléphone ne partage aucun pack (il n’a pas encore installé l’IA ni la voix).")}</Texte>}
         {packs.map((p) => (
           <Carte key={p.fichier} couleur={deja[p.fichier] ? c.ok : utile(p) ? c.accent : undefined}>
-            <Texte>{p.nom}</Texte>
+            <Texte>{t(p.nom)}</Texte>
             <Texte muted>
               {formatTaille(p.octets)}
-              {deja[p.fichier] ? ' · déjà installé ✓' : !utile(p) ? ' · trop lourd pour ton téléphone, ignoré' : ''}
+              {deja[p.fichier] ? t(" · déjà installé ✓") : !utile(p) ? t(" · trop lourd pour ton téléphone, ignoré") : ''}
               {progres[p.fichier] !== undefined && !deja[p.fichier] ? ` · ${Math.round(progres[p.fichier] * 100)} %` : ''}
             </Texte>
           </Carte>
         ))}
         {packs.some((p) => !deja[p.fichier] && utile(p)) && (
-          <Bouton label={enCours ? 'Copie en cours…' : 'Tout récupérer'} icone="download" grand onPress={() => !enCours && toutRecuperer()} />
+          <Bouton label={enCours ? t("Copie en cours…") : t("Tout récupérer")} icone="download" grand onPress={() => !enCours && toutRecuperer()} />
         )}
       </Ecran>
     );
@@ -94,10 +95,9 @@ export default function Recevoir() {
 
   return (
     <Ecran>
-      <Titre>Récupérer depuis un proche</Titre>
+      <Titre>{t("Récupérer depuis un proche")}</Titre>
       <Texte muted>
-        1. Connecte-toi au Wi-Fi de son téléphone (son premier QR code, avec ton appareil photo).{'\n'}2. Scanne ici son second QR code.
-      </Texte>
+        {t("1. Connecte-toi au Wi-Fi de son téléphone (son premier QR code, avec ton appareil photo).")}{'\n'}{t("2. Scanne ici son second QR code.")}</Texte>
       {permission?.granted ? (
         <View style={{ height: 300, borderRadius: 16, overflow: 'hidden' }}>
           <CameraView
@@ -111,10 +111,10 @@ export default function Recevoir() {
           />
         </View>
       ) : (
-        <Bouton label="Autoriser la caméra" icone="camera" onPress={demander} />
+        <Bouton label={t("Autoriser la caméra")} icone="camera" onPress={demander} />
       )}
-      <Champ label="Ou tape l’adresse affichée sur son écran" placeholder="http://192.168.49.1:8080" value={adresse} onChangeText={setAdresse} autoCapitalize="none" keyboardType="url" />
-      <Bouton label="Se connecter" discret onPress={() => adresse.trim() && connecter(adresse)} />
+      <Champ label={t("Ou tape l’adresse affichée sur son écran")} placeholder="http://192.168.49.1:8080" value={adresse} onChangeText={setAdresse} autoCapitalize="none" keyboardType="url" />
+      <Bouton label={t("Se connecter")} discret onPress={() => adresse.trim() && connecter(adresse)} />
     </Ecran>
   );
 }

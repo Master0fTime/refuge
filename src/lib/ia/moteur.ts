@@ -1,8 +1,10 @@
 import { initLlama, type LlamaContext } from 'llama.rn';
 import { consigneLangue } from '@/lib/langue';
 import { resumePaysCourt } from '@/lib/pays';
+import type { PassageEncyclopedie } from '@/lib/encyclopedie';
 import { termes, texteFiche, type Resultat } from '@/lib/recherche';
 import { chemin, type Modele } from './modeles';
+import { t } from '@/i18n';
 
 // Un seul modèle chargé à la fois : la mémoire du téléphone est précieuse.
 let contexte: LlamaContext | null = null;
@@ -32,7 +34,7 @@ export async function charger(m: Modele, onProgres?: (p: number) => void) {
       await liberer();
     }
   }
-  throw new Error(`Chargement du modèle impossible : ${message(derniere)}`);
+  throw new Error(t('Chargement du modèle impossible : {erreur}', { erreur: message(derniere) }));
 }
 
 export async function liberer() {
@@ -50,6 +52,7 @@ Règles :
 - Priorités : sécurité, soins vitaux, abri et chaleur, eau, nourriture. Dis pourquoi en une phrase.
 - Donne un plan concret pour SA situation : maintenant, puis dans les heures qui suivent. Termine par une question utile.
 - Appuie-toi sur la fiche la plus pertinente et donne SES gestes, dans l'ordre. Cite-la : [1]. Ignore les fiches hors sujet. Hors survie, tu peux utiliser tes connaissances en le signalant.
+- L'encyclopédie [E1] sert à expliquer (maladie, symptômes) ; les gestes viennent d'abord des fiches. Cite-la : [E1].
 - Jamais de dose de médicament, ni de plante ou de champignon à manger, s'ils ne sont pas dans les fiches.
 - Urgence vitale : « Appelle le 112 si tu peux », puis les gestes. Si les secours ne viendront pas, utilise « Si personne ne peut venir ».
 - Si elle panique : une phrase qui reconnaît sa peur (jamais « calme-toi »), puis demande : danger immédiat ? blessé ? crise d'angoisse ? Une action à la fois.
@@ -79,7 +82,16 @@ function contexteFiches(sources: Resultat[], question: string) {
     .join('\n\n');
 }
 
-export type Message = { role: 'user' | 'assistant'; content: string };
+/** Un ou deux extraits d'encyclopédie, courts : ils complètent les fiches sans ralentir la réponse. */
+function contexteEncyclopedie(passages: PassageEncyclopedie[], question: string, nbFiches: number) {
+  const mots = termes(question);
+  return passages
+    .slice(0, nbFiches >= 2 ? 1 : 2)
+    .map((p, i) => `[E${i + 1}] ${p.titre} (Wikipédia)\n${extraitFiche(p.texte.replace(/\. /g, '.\n'), mots, 500).replace(/\n/g, ' ')}`)
+    .join('\n\n');
+}
+
+export type Message ={ role: 'user' | 'assistant'; content: string };
 
 /** Étapes visibles pour l'utilisateur : la lecture du contexte peut prendre plusieurs secondes. */
 export type Phase = 'lecture' | 'ecriture';
@@ -90,8 +102,9 @@ export async function repondre(
   historique: Message[],
   onTexte: (texteCumule: string) => void,
   onPhase?: (p: Phase) => void,
+  encyclopedie: PassageEncyclopedie[] = [],
 ) {
-  if (!contexte) throw new Error('Aucun modèle chargé.');
+  if (!contexte) throw new Error(t('Aucun modèle chargé.'));
   // Le début des consignes ne change pas d'une question à l'autre : le modèle le garde en mémoire
   // (cache) et n'a à relire que la partie qui change (fiches, situation, question).
   const systeme = `${SYSTEME}\n${consigneLangue()}\n${resumePaysCourt()}`;
@@ -103,6 +116,7 @@ export async function repondre(
   const derniereReponse = [...historique].reverse().find((m) => m.role === 'assistant')?.content.slice(0, 400);
   const demande = [
     `FICHES :\n${contexteFiches(sources, question) || '(aucune fiche trouvée)'}`,
+    encyclopedie.length > 0 && `ENCYCLOPÉDIE :\n${contexteEncyclopedie(encyclopedie, question, sources.length)}`,
     situation && `CE QUE J'AI DÉJÀ DIT :\n${situation}`,
     derniereReponse && `TA RÉPONSE PRÉCÉDENTE (début) : ${derniereReponse}`,
     `MA QUESTION : ${question}`,
@@ -149,7 +163,7 @@ export async function repondre(
     try {
       return await generer(false);
     } catch (e2) {
-      throw new Error(`Génération impossible : ${message(e2)} (premier essai : ${message(e)})`);
+      throw new Error(t('Génération impossible : {erreur} (premier essai : {premiere})', { erreur: message(e2), premiere: message(e) }));
     }
   }
 }

@@ -8,6 +8,7 @@ import { Bouton, Carte, Champ, Ecran, Sous, Texte } from '@/components/ui';
 import { dms, pointCardinal } from '@/lib/geo';
 import { enMorse, sequence } from '@/lib/morse';
 import { c } from '@/lib/theme';
+import { t } from '@/i18n';
 
 const UNITE_MS = 250;
 type Mode = 'lampe' | 'ecran';
@@ -79,32 +80,32 @@ export default function Outils() {
       {/* La lampe torche passe par la caméra : on la monte en 1×1 pixel, seulement quand on en a besoin. */}
       {cameraMontee && <CameraView style={{ width: 1, height: 1, opacity: 0 }} enableTorch={torche} />}
 
-      <Sous>Lumière et signaux</Sous>
-      <Bouton label={lampe ? 'Éteindre la lampe' : 'Lampe torche'} icone="flashlight" grand onPress={basculerLampe} />
+      <Sous>{t("Lumière et signaux")}</Sous>
+      <Bouton label={lampe ? t("Éteindre la lampe") : t("Lampe torche")} icone="flashlight" grand onPress={basculerLampe} />
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <View style={{ flex: 1 }}>
-          <Bouton label="SOS lampe" icone="warning" couleur={c.danger} onPress={() => lancer('lampe', 'SOS')} />
+          <Bouton label={t("SOS lampe")} icone="warning" couleur={c.danger} onPress={() => lancer('lampe', 'SOS')} />
         </View>
         <View style={{ flex: 1 }}>
-          <Bouton label="SOS écran" icone="phone-portrait" couleur={c.danger} onPress={() => lancer('ecran', 'SOS')} />
+          <Bouton label={t("SOS écran")} icone="phone-portrait" couleur={c.danger} onPress={() => lancer('ecran', 'SOS')} />
         </View>
       </View>
-      {signal?.mode === 'lampe' && <Bouton label="Arrêter le signal" icone="stop" discret onPress={() => setSignal(null)} />}
+      {signal?.mode === 'lampe' && <Bouton label={t("Arrêter le signal")} icone="stop" discret onPress={() => setSignal(null)} />}
 
       <Carte>
-        <Champ label="Envoyer un message en morse" placeholder="ex. AIDE, OK, EAU" value={texteMorse} onChangeText={setTexteMorse} />
+        <Champ label={t("Envoyer un message en morse")} placeholder={t("ex. AIDE, OK, EAU")} value={texteMorse} onChangeText={setTexteMorse} />
         {texteMorse.trim() ? <Texte muted>{enMorse(texteMorse)}</Texte> : null}
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <View style={{ flex: 1 }}>
-            <Bouton label="Lampe" discret onPress={() => texteMorse.trim() && lancer('lampe', texteMorse)} />
+            <Bouton label={t("Lampe")} discret onPress={() => texteMorse.trim() && lancer('lampe', texteMorse)} />
           </View>
           <View style={{ flex: 1 }}>
-            <Bouton label="Écran" discret onPress={() => texteMorse.trim() && lancer('ecran', texteMorse)} />
+            <Bouton label={t("Écran")} discret onPress={() => texteMorse.trim() && lancer('ecran', texteMorse)} />
           </View>
         </View>
       </Carte>
 
-      <Sous>Boussole</Sous>
+      <Sous>{t("Boussole")}</Sous>
       <Carte>
         <View style={{ alignItems: 'center' }}>
           <View style={{ transform: [{ rotate: `${-(heading ?? 0)}deg` }] }}>
@@ -113,11 +114,11 @@ export default function Outils() {
           <Text style={{ color: c.text, fontSize: 32, fontWeight: '800' }}>
             {heading === null ? '…' : `${Math.round(heading)}° ${pointCardinal(heading)}`}
           </Text>
-          <Texte muted>La pointe indique le nord. Si c’est imprécis, dessine un « 8 » en l’air avec le téléphone.</Texte>
+          <Texte muted>{t("La pointe indique le nord. Si c’est imprécis, dessine un « 8 » en l’air avec le téléphone.")}</Texte>
         </View>
       </Carte>
 
-      <Sous>Ma position (GPS, sans Internet)</Sous>
+      <Sous>{t("Ma position (GPS, sans Internet)")}</Sous>
       <Carte>
         {pos ? (
           <>
@@ -128,24 +129,24 @@ export default function Outils() {
               {dms(pos.coords.latitude, true)} {dms(pos.coords.longitude, false)}
             </Texte>
             <Texte muted>
-              Précision ±{Math.round(pos.coords.accuracy ?? 0)} m
-              {pos.coords.altitude != null ? ` · Altitude ${Math.round(pos.coords.altitude)} m` : ''}
+              {t("Précision ±")}{Math.round(pos.coords.accuracy ?? 0)} m
+              {pos.coords.altitude != null ? t(" · Altitude {v1} m", { v1: Math.round(pos.coords.altitude) }) : ''}
             </Texte>
             <Bouton
-              label="Partager / noter"
+              label={t("Partager / noter")}
               icone="share"
               discret
-              onPress={() => Share.share({ message: `Ma position : ${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}` })}
+              onPress={() => Share.share({ message: t("Ma position : {v1}, {v2}", { v1: pos.coords.latitude.toFixed(5), v2: pos.coords.longitude.toFixed(5) }) })}
             />
           </>
         ) : (
-          <Texte muted>Recherche des satellites… (plus rapide dehors, à découvert)</Texte>
+          <Texte muted>{t("Recherche des satellites… (plus rapide dehors, à découvert)")}</Texte>
         )}
       </Carte>
 
       <Modal visible={signal?.mode === 'ecran'} animationType="none" onRequestClose={() => setSignal(null)}>
         <Pressable style={{ flex: 1, backgroundColor: allume ? '#fff' : '#000', justifyContent: 'flex-end' }} onPress={() => setSignal(null)}>
-          <Text style={{ color: '#888', textAlign: 'center', padding: 32 }}>Touchez pour arrêter</Text>
+          <Text style={{ color: '#888', textAlign: 'center', padding: 32 }}>{t("Touchez pour arrêter")}</Text>
         </Pressable>
       </Modal>
     </Ecran>

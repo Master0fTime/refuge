@@ -11,6 +11,7 @@ import { positionActuelle } from '@/lib/position';
 import { KEYS, useStored } from '@/lib/store';
 import { c, space } from '@/lib/theme';
 import type { Groupe } from '@/lib/types';
+import { t } from '@/i18n';
 
 type Repere = { id: string; nom: string; lat: number; lon: number };
 type Point = Repere & { type: 'ralliement' | 'repere'; groupe?: string };
@@ -48,7 +49,7 @@ export default function Carte() {
   ];
 
   const ajouterRepere = (lngLat: [number, number]) => {
-    const r: Repere = { id: nouvelId(), nom: `Repère ${reperes.length + 1}`, lon: lngLat[0], lat: lngLat[1] };
+    const r: Repere = { id: nouvelId(), nom: t("Repère {v1}", { v1: reperes.length + 1 }), lon: lngLat[0], lat: lngLat[1] };
     setReperes([...reperes, r]);
     setSelection({ ...r, type: 'repere' });
   };
@@ -81,8 +82,8 @@ export default function Carte() {
 
       {pret === false && (
         <View style={st.bandeau}>
-          <Text style={st.bandeauTxt}>Aucune carte enregistrée : sans Internet, la carte restera vide.</Text>
-          <Bouton label="Télécharger les cartes" icone="download" onPress={() => router.push('/cartes')} />
+          <Text style={st.bandeauTxt}>{t("Aucune carte enregistrée : sans Internet, la carte restera vide.")}</Text>
+          <Bouton label={t("Télécharger les cartes")} icone="download" onPress={() => router.push('/cartes')} />
         </View>
       )}
 
@@ -98,30 +99,30 @@ export default function Carte() {
       {selection ? (
         <View style={st.fiche}>
           {selection.type === 'repere' ? (
-            <TextInput value={selection.nom} onChangeText={renommer} style={st.nomEdit} placeholder="Nom du repère" placeholderTextColor={c.muted} />
+            <TextInput value={selection.nom} onChangeText={renommer} style={st.nomEdit} placeholder={t("Nom du repère")} placeholderTextColor={c.muted} />
           ) : (
             <Text style={st.nom}>{selection.nom}</Text>
           )}
           <Text style={st.sous}>
-            {selection.type === 'ralliement' ? `Point de ralliement · ${selection.groupe}` : 'Mon repère'} · {selection.lat.toFixed(5)}, {selection.lon.toFixed(5)}
+            {selection.type === 'ralliement' ? t("Point de ralliement · {groupe}", { groupe: selection.groupe }) : t("Mon repère")} · {selection.lat.toFixed(5)}, {selection.lon.toFixed(5)}
           </Text>
           <View style={{ flexDirection: 'row', gap: space.sm }}>
             <View style={{ flex: 2 }}>
               <Bouton
-                label="Y aller"
+                label={t("Y aller")}
                 icone="navigate"
                 onPress={() => router.push({ pathname: '/rejoindre', params: { lat: String(selection.lat), lon: String(selection.lon), nom: selection.nom } })}
               />
             </View>
             {selection.type === 'repere' && (
               <View style={{ flex: 1 }}>
-                <Bouton label="Supprimer" discret onPress={supprimer} />
+                <Bouton label={t("Supprimer")} discret onPress={supprimer} />
               </View>
             )}
           </View>
         </View>
       ) : (
-        <Text style={st.aide}>Appui long sur la carte pour ajouter un repère</Text>
+        <Text style={st.aide}>{t("Appui long sur la carte pour ajouter un repère")}</Text>
       )}
     </View>
   );

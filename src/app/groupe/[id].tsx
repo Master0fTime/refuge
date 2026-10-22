@@ -10,6 +10,7 @@ import { positionActuelle } from '@/lib/position';
 import { KEYS, useStored } from '@/lib/store';
 import { c } from '@/lib/theme';
 import type { Groupe, PlanGroupe } from '@/lib/types';
+import { t } from '@/i18n';
 
 export default function GroupeDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,7 +25,7 @@ export default function GroupeDetail() {
   if (!g) {
     return (
       <Ecran>
-        <Texte>Groupe introuvable.</Texte>
+        <Texte>{t("Groupe introuvable.")}</Texte>
       </Ecran>
     );
   }
@@ -38,14 +39,14 @@ export default function GroupeDetail() {
       const p = await positionActuelle();
       setCoords(`${p.coords.latitude.toFixed(6)}, ${p.coords.longitude.toFixed(6)}`);
     } catch (e) {
-      Alert.alert('Position', String(e instanceof Error ? e.message : e));
+      Alert.alert(t("Position"), String(e instanceof Error ? e.message : e));
     }
   };
 
   const ajouterPoint = () => {
     const pos = parseCoords(coords);
     if (!nomPt.trim() || !pos) {
-      Alert.alert('Point incomplet', 'Il faut un nom et des coordonnées valides (ex. 48.8566, 2.3522).');
+      Alert.alert(t("Point incomplet"), t("Il faut un nom et des coordonnées valides (ex. 48.8566, 2.3522)."));
       return;
     }
     maj({ points: [...g.points, { id: nouvelId(), nom: nomPt.trim(), note: notePt.trim(), ...pos, ordre: g.points.length + 1 }] });
@@ -58,10 +59,10 @@ export default function GroupeDetail() {
     maj({ points: g.points.filter((p) => p.id !== pid).map((p, i) => ({ ...p, ordre: i + 1 })) });
 
   const supprimerGroupe = () =>
-    Alert.alert('Supprimer le groupe', 'Le groupe sera supprimé de CE téléphone seulement.', [
-      { text: 'Annuler' },
+    Alert.alert(t("Supprimer le groupe"), t("Le groupe sera supprimé de CE téléphone seulement."), [
+      { text: t("Annuler") },
       {
-        text: 'Supprimer',
+        text: t("Supprimer"),
         style: 'destructive',
         onPress: () => {
           router.back();
@@ -76,13 +77,13 @@ export default function GroupeDetail() {
     <Ecran>
       <Stack.Screen options={{ title: g.nom }} />
 
-      <Sous>Partager avec le groupe</Sous>
+      <Sous>{t("Partager avec le groupe")}</Sous>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <View style={{ flex: 1 }}>
-          <Bouton label={qr ? 'Masquer le QR' : 'QR code'} icone="qr-code" onPress={() => setQr(!qr)} />
+          <Bouton label={qr ? t("Masquer le QR") : t("QR code")} icone="qr-code" onPress={() => setQr(!qr)} />
         </View>
         <View style={{ flex: 1 }}>
-          <Bouton label="Texte / SMS" icone="chatbubble" discret onPress={() => Share.share({ message: texteGroupe(g) })} />
+          <Bouton label={t("Texte / SMS")} icone="chatbubble" discret onPress={() => Share.share({ message: texteGroupe(g) })} />
         </View>
       </View>
       {qr && (
@@ -90,14 +91,14 @@ export default function GroupeDetail() {
           <QRCode value={encoder({ t: 'g', g })} size={260} ecl="L" />
         </View>
       )}
-      <Texte muted>Chaque membre scanne ce QR avec Refuge : il reçoit les points et le plan. Refais-le après chaque modification.</Texte>
+      <Texte muted>{t("Chaque membre scanne ce QR avec Refuge : il reçoit les points et le plan. Refais-le après chaque modification.")}</Texte>
 
-      <Sous>Points de ralliement</Sous>
-      {points.length === 0 && <Texte muted>Ajoutez au moins un point principal (proche) et un point de secours (plus loin).</Texte>}
+      <Sous>{t("Points de ralliement")}</Sous>
+      {points.length === 0 && <Texte muted>{t("Ajoutez au moins un point principal (proche) et un point de secours (plus loin).")}</Texte>}
       {points.map((p) => (
         <Carte key={p.id} couleur={p.ordre === 1 ? c.ok : c.accent}>
           <Titre>
-            {p.ordre === 1 ? 'Point principal' : `Point de secours ${p.ordre - 1}`} : {p.nom}
+            {p.ordre === 1 ? t("Point principal") : t("Point de secours {v1}", { v1: p.ordre - 1 })} : {p.nom}
           </Titre>
           {p.note ? <Texte>{p.note}</Texte> : null}
           <Texte muted>
@@ -105,37 +106,37 @@ export default function GroupeDetail() {
           </Texte>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <View style={{ flex: 1 }}>
-              <Bouton label="Y aller" icone="navigate" onPress={() => router.push({ pathname: '/rejoindre', params: { gid: g.id, pid: p.id } })} />
+              <Bouton label={t("Y aller")} icone="navigate" onPress={() => router.push({ pathname: '/rejoindre', params: { gid: g.id, pid: p.id } })} />
             </View>
             <View style={{ flex: 1 }}>
-              <Bouton label="Carte" icone="map" discret onPress={() => Linking.openURL(geoUri(p.lat, p.lon, p.nom)).catch(() => Alert.alert('Aucune appli de cartes', 'Installe Organic Maps ou OsmAnd (cartes hors ligne gratuites).'))} />
+              <Bouton label={t("Carte")} icone="map" discret onPress={() => Linking.openURL(geoUri(p.lat, p.lon, p.nom)).catch(() => Alert.alert(t("Aucune appli de cartes"), t("Installe Organic Maps ou OsmAnd (cartes hors ligne gratuites).")))} />
             </View>
           </View>
-          <Bouton label="Supprimer ce point" discret onPress={() => supprimerPoint(p.id)} />
+          <Bouton label={t("Supprimer ce point")} discret onPress={() => supprimerPoint(p.id)} />
         </Carte>
       ))}
       <Carte>
-        <Champ label="Nom du point" placeholder="ex. Chez mamie, Parking du stade…" value={nomPt} onChangeText={setNomPt} />
-        <Champ label="Repère / note" placeholder="ex. Devant la grille verte" value={notePt} onChangeText={setNotePt} />
-        <Champ label="Coordonnées (lat, lon)" placeholder="48.8566, 2.3522" value={coords} onChangeText={setCoords} />
-        <Bouton label="Utiliser ma position actuelle" icone="locate" discret onPress={ici} />
-        <Bouton label="Ajouter le point" icone="add" onPress={ajouterPoint} />
+        <Champ label={t("Nom du point")} placeholder={t("ex. Chez mamie, Parking du stade…")} value={nomPt} onChangeText={setNomPt} />
+        <Champ label={t("Repère / note")} placeholder={t("ex. Devant la grille verte")} value={notePt} onChangeText={setNotePt} />
+        <Champ label={t("Coordonnées (lat, lon)")} placeholder="48.8566, 2.3522" value={coords} onChangeText={setCoords} />
+        <Bouton label={t("Utiliser ma position actuelle")} icone="locate" discret onPress={ici} />
+        <Bouton label={t("Ajouter le point")} icone="add" onPress={ajouterPoint} />
       </Carte>
 
-      <Sous>Notre plan si ça tourne mal</Sous>
+      <Sous>{t("Notre plan si ça tourne mal")}</Sous>
       <Champ
-        label="Consignes (dans l’ordre)"
+        label={t("Consignes (dans l’ordre)")}
         multiline
-        placeholder={'ex. 1. Sans nouvelles sous 6 h → point principal.\n2. Personne au bout de 24 h → point de secours.\n3. Laisser un mot sous le paillasson.'}
+        placeholder={t("ex. 1. Sans nouvelles sous 6 h → point principal.\n2. Personne au bout de 24 h → point de secours.\n3. Laisser un mot sous le paillasson.")}
         value={g.plan.consignes}
         onChangeText={majPlan('consignes')}
       />
-      <Champ label="Radio (canal, sous-code)" placeholder="ex. PMR canal 8, sans sous-code" value={g.plan.canalRadio} onChangeText={majPlan('canalRadio')} />
-      <Champ label="Heures de vacation radio" placeholder="ex. 5 min à chaque heure pleine" value={g.plan.vacations} onChangeText={majPlan('vacations')} />
-      <Champ label="Mot de passe du groupe (pour se reconnaître)" value={g.plan.motCode} onChangeText={majPlan('motCode')} />
-      <Bouton label="Conseils pour bien faire un plan" icone="book" discret onPress={() => router.push('/fiche/comms-plan')} />
+      <Champ label={t("Radio (canal, sous-code)")} placeholder={t("ex. PMR canal 8, sans sous-code")} value={g.plan.canalRadio} onChangeText={majPlan('canalRadio')} />
+      <Champ label={t("Heures de vacation radio")} placeholder={t("ex. 5 min à chaque heure pleine")} value={g.plan.vacations} onChangeText={majPlan('vacations')} />
+      <Champ label={t("Mot de passe du groupe (pour se reconnaître)")} value={g.plan.motCode} onChangeText={majPlan('motCode')} />
+      <Bouton label={t("Conseils pour bien faire un plan")} icone="book" discret onPress={() => router.push('/fiche/comms-plan')} />
 
-      <Sous>Membres ({g.membres.length})</Sous>
+      <Sous>{t("Membres (")}{g.membres.length})</Sous>
       {g.membres.map((m) => (
         <Texte key={m.id}>
           • {m.nom}
@@ -143,7 +144,7 @@ export default function GroupeDetail() {
         </Texte>
       ))}
 
-      <Bouton label="Supprimer le groupe" icone="trash" couleur={c.danger} onPress={supprimerGroupe} />
+      <Bouton label={t("Supprimer le groupe")} icone="trash" couleur={c.danger} onPress={supprimerGroupe} />
     </Ecran>
   );
 }

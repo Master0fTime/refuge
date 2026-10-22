@@ -159,10 +159,10 @@ export default function Panique() {
       {etape === 'danger' && (
         <ScrollView contentContainerStyle={st.liste}>
           <Text style={st.grand}>{t('D’abord, ta sécurité.')}</Text>
-          <Consigne n={1} texte="Éloigne-toi des fenêtres et des vitres." />
-          <Consigne n={2} texte="Mets-toi au plus bas, derrière un mur solide ou dans une pièce sans fenêtre (couloir, salle de bain, sous-sol)." />
-          <Consigne n={3} texte="Si c’est à portée de main : chaussures, téléphone, papiers. Sinon, laisse tout." />
-          <Consigne n={4} texte="Ne sors pas voir ce qui se passe." />
+          <Consigne n={1} texte={t("Éloigne-toi des fenêtres et des vitres.")} />
+          <Consigne n={2} texte={t("Mets-toi au plus bas, derrière un mur solide ou dans une pièce sans fenêtre (couloir, salle de bain, sous-sol).")} />
+          <Consigne n={3} texte={t("Si c’est à portée de main : chaussures, téléphone, papiers. Sinon, laisse tout.")} />
+          <Consigne n={4} texte={t("Ne sors pas voir ce qui se passe.")} />
           <Text style={st.phrase}>{t('Es-tu à l’abri maintenant ?')}</Text>
           <OuiNon oui={() => respirer(1, 'suite')} non={() => setEtape('abri')} />
         </ScrollView>
@@ -171,9 +171,9 @@ export default function Panique() {
       {etape === 'abri' && (
         <ScrollView contentContainerStyle={st.liste}>
           <Text style={st.grand}>{t('Protège-toi.')}</Text>
-          <Consigne n={1} texte="Si tu peux bouger sans danger : va vers l’endroit le plus protégé (sous-sol, cage d’escalier, couloir au centre du bâtiment)." />
-          <Consigne n={2} texte="Sinon : reste allongé au sol, protège ta tête avec tes bras." />
-          <Consigne n={3} texte="Odeur de gaz ou fumée : sors dès que c’est possible, en restant bas." />
+          <Consigne n={1} texte={t("Si tu peux bouger sans danger : va vers l’endroit le plus protégé (sous-sol, cage d’escalier, couloir au centre du bâtiment).")} />
+          <Consigne n={2} texte={t("Sinon : reste allongé au sol, protège ta tête avec tes bras.")} />
+          <Consigne n={3} texte={t("Odeur de gaz ou fumée : sors dès que c’est possible, en restant bas.")} />
           <GrosBouton label={t('Je suis à l’abri')} couleur={c.ok} onPress={() => respirer(1, 'suite')} />
         </ScrollView>
       )}
@@ -204,12 +204,12 @@ export default function Panique() {
       )}
 
       {etape === 'blesse' && (
-        <Question texte="Toi ou quelqu’un près de toi, est-il blessé ?" oui={() => quitter({ pathname: '/guide', params: { probleme: 'blesse' } })} non={() => setEtape('enDanger')} />
+        <Question texte={t("Toi ou quelqu’un près de toi, est-il blessé ?")} oui={() => quitter({ pathname: '/guide', params: { probleme: 'blesse' } })} non={() => setEtape('enDanger')} />
       )}
-      {etape === 'enDanger' && <Question texte="Es-tu en danger, là où tu es, maintenant ?" oui={() => setEtape('danger')} non={() => setEtape('seul')} />}
+      {etape === 'enDanger' && <Question texte={t("Es-tu en danger, là où tu es, maintenant ?")} oui={() => setEtape('danger')} non={() => setEtape('seul')} />}
       {etape === 'seul' && (
         <Question
-          texte="Es-tu seul ?"
+          texte={t("Es-tu seul ?")}
           oui={() => {
             parler(t('Tu n’es pas complètement seul : je suis là, et tu peux prévenir tes proches.'));
             setEtape('suite');

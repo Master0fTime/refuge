@@ -5,6 +5,7 @@ import { initWhisper, type WhisperContext } from 'whisper.rn/index';
 import { chemin, estInstalle, ramGo, type Telechargeable } from '@/lib/ia/modeles';
 import { langueActuelle } from '@/lib/langue';
 import { KEYS, lire } from '@/lib/store';
+import { t } from '@/i18n';
 
 // Reconnaissance vocale 100 % hors ligne (whisper.cpp) et lecture des réponses à voix haute.
 
@@ -45,7 +46,7 @@ let charge: string | null = null;
 
 async function chargerWhisper() {
   const m = await voixInstallee();
-  if (!m) throw new Error('La reconnaissance vocale n’est pas installée.');
+  if (!m) throw new Error(t('La reconnaissance vocale n’est pas installée.'));
   if (contexte && charge === m.id) return contexte;
   await contexte?.release();
   contexte = await initWhisper({ filePath: chemin(m) });
@@ -67,11 +68,11 @@ const DUREE_MAX_MS = 60_000;
 export async function demarrerEnregistrement(onFin?: () => void) {
   if (Platform.OS === 'android') {
     const r = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO, {
-      title: 'Micro',
-      message: 'Refuge utilise le micro pour comprendre ta question. Le son reste sur ton téléphone.',
+      title: t('Micro'),
+      message: t('Refuge utilise le micro pour comprendre ta question. Le son reste sur ton téléphone.'),
       buttonPositive: 'OK',
     });
-    if (r !== PermissionsAndroid.RESULTS.GRANTED) throw new Error('Autorise le micro pour parler à l’IA.');
+    if (r !== PermissionsAndroid.RESULTS.GRANTED) throw new Error(t('Autorise le micro pour parler à l’IA.'));
   }
   Speech.stop();
   morceaux = [];
@@ -143,7 +144,7 @@ export async function arreterEtTranscrire(): Promise<string> {
   }
   const echantillons = pcm.length / 2;
   if (echantillons < 16000 * 0.5) return ''; // moins d'une demi-seconde : rien d'exploitable
-  if (volumeMax(pcm) < 300) throw new Error('Le micro n’a capté que du silence. Vérifie qu’aucune autre appli ne l’utilise, puis réessaie.');
+  if (volumeMax(pcm) < 300) throw new Error(t('Le micro n’a capté que du silence. Vérifie qu’aucune autre appli ne l’utilise, puis réessaie.'));
 
   const ctx = await chargerWhisper();
   const { promise } = ctx.transcribeData(pcm.buffer, {

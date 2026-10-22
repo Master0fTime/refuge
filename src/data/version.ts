@@ -19,6 +19,24 @@ export const DERNIER_APK: VersionApk | null = null;
 /** Notes de version, la plus récente en premier. Affichées dans « Mises à jour ». */
 export const NOUVEAUTES: { version: string; date: string; points: string[] }[] = [
   {
+    version: '0.7.5',
+    date: '2026-10-22',
+    points: [
+      'Encyclopédie hors ligne : environ 15 000 articles de médecine de Wikipédia (maladies, symptômes, traitements), à installer depuis « Préparer mon téléphone ».',
+      'L’IA s’en sert pour mieux expliquer, en citant [E1] ; les gestes viennent toujours d’abord des fiches.',
+      'La recherche de l’onglet Savoir montre aussi les articles de l’encyclopédie.',
+    ],
+  },
+  {
+    version: '0.7.4',
+    date: '2026-10-22',
+    points: [
+      'Toute l’appli en allemand et en italien : réglages, outils, cartes, groupe, carte de vie, partage, mises à jour.',
+      'Les SMS « Je vais bien » / « J’ai besoin d’aide » partent dans la langue choisie.',
+      'Infos pays traduites : centres antipoison, radios, abris, réserves, organisations d’aide.',
+    ],
+  },
+  {
     version: '0.7.3',
     date: '2026-10-22',
     points: [

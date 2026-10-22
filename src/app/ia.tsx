@@ -19,6 +19,7 @@ import {
 } from '@/lib/ia/modeles';
 import { KEYS, useStored } from '@/lib/store';
 import { c } from '@/lib/theme';
+import { t } from '@/i18n';
 
 type EtatDl = { progres: number; tache: DownloadResumable; enPause: boolean };
 
@@ -62,12 +63,12 @@ export default function ReglagesIA() {
     majDl(m.id, null);
     await rafraichir();
     if (!actif) setActif(m.id);
-    Alert.alert('IA installée', `${m.nom} fonctionne maintenant sans Internet.`);
+    Alert.alert(t("IA installée"), t("{nom} fonctionne maintenant sans Internet.", { nom: t(m.nom) }));
   };
 
   const lancer = async (m: Modele) => {
     if (libre !== null && libre < m.octets * 1.1) {
-      Alert.alert('Pas assez de place', `Il faut ${formatTaille(m.octets)} libres (il reste ${formatTaille(libre)}).`);
+      Alert.alert(t("Pas assez de place"), t("Il faut {v1} libres (il reste {v2}).", { v1: formatTaille(m.octets), v2: formatTaille(libre) }));
       return;
     }
     await preparerDossier();
@@ -78,7 +79,7 @@ export default function ReglagesIA() {
       if (r) await terminer(m);
     } catch (e) {
       majDl(m.id, { enPause: true });
-      Alert.alert('Téléchargement interrompu', `${e instanceof Error ? e.message : e}\nTu peux reprendre là où il s’est arrêté.`);
+      Alert.alert(t("Téléchargement interrompu"), t("{v1}\nTu peux reprendre là où il s’est arrêté.", { v1: e instanceof Error ? e.message : e }));
     }
   };
 
@@ -88,23 +89,23 @@ export default function ReglagesIA() {
   };
 
   const reprendre = async (m: Modele) => {
-    const t = dl[m.id]?.tache;
-    if (!t) return;
+    const tache = dl[m.id]?.tache;
+    if (!tache) return;
     majDl(m.id, { enPause: false });
     try {
-      const r = await t.resumeAsync();
+      const r = await tache.resumeAsync();
       if (r) await terminer(m);
     } catch (e) {
       majDl(m.id, { enPause: true });
-      Alert.alert('Téléchargement interrompu', String(e instanceof Error ? e.message : e));
+      Alert.alert(t("Téléchargement interrompu"), String(e instanceof Error ? e.message : e));
     }
   };
 
   const retirer = (m: Modele) =>
-    Alert.alert('Supprimer', `Supprimer ${m.nom} (${formatTaille(m.octets)}) ?`, [
-      { text: 'Annuler' },
+    Alert.alert(t("Supprimer"), t("Supprimer {nom} ({v2}) ?", { nom: t(m.nom), v2: formatTaille(m.octets) }), [
+      { text: t("Annuler") },
       {
-        text: 'Supprimer',
+        text: t("Supprimer"),
         style: 'destructive',
         onPress: async () => {
           if (actif === m.id) {
@@ -123,9 +124,9 @@ export default function ReglagesIA() {
       if (!m) return;
       await rafraichir();
       setActif(m.id);
-      Alert.alert('IA importée', `${m.nom} est prête.`);
+      Alert.alert(t("IA importée"), t("{nom} est prête.", { nom: t(m.nom) }));
     } catch (e) {
-      Alert.alert('Import impossible', String(e instanceof Error ? e.message : e));
+      Alert.alert(t("Import impossible"), String(e instanceof Error ? e.message : e));
     }
   };
 
@@ -133,34 +134,31 @@ export default function ReglagesIA() {
     <Ecran>
       <Carte couleur={c.info}>
         <Texte>
-          L’IA tourne ENTIÈREMENT sur ton téléphone : rien n’est envoyé sur Internet. Elle ne répond qu’à partir des fiches de
-          l’appli et cite ses sources.
-        </Texte>
+          {t("L’IA tourne ENTIÈREMENT sur ton téléphone : rien n’est envoyé sur Internet. Elle ne répond qu’à partir des fiches de l’appli et cite ses sources.")}</Texte>
         <Texte muted>
-          Mémoire du téléphone : {ram ? `${ram.toFixed(1)} Go` : 'inconnue'} · Espace libre : {libre !== null ? formatTaille(libre) : '…'}
+          {t("Mémoire du téléphone : ")}{ram ? `${ram.toFixed(1)} Go` : 'inconnue'} {t(" · Espace libre : ")}{libre !== null ? formatTaille(libre) : '…'}
         </Texte>
         {!conseille && (
-          <Texte>Ton téléphone a peu de mémoire : l’IA risque d’être lente ou de planter. Les fiches et la recherche marchent sans elle.</Texte>
+          <Texte>{t("Ton téléphone a peu de mémoire : l’IA risque d’être lente ou de planter. Les fiches et la recherche marchent sans elle.")}</Texte>
         )}
       </Carte>
-      <Texte muted>Télécharge le modèle MAINTENANT, en Wi-Fi, pendant qu’Internet fonctionne.</Texte>
+      <Texte muted>{t("Télécharge le modèle MAINTENANT, en Wi-Fi, pendant qu’Internet fonctionne.")}</Texte>
 
       {MODELES.map((m) => {
         const d = dl[m.id];
         const ok = installes[m.id];
         return (
           <Carte key={m.id} couleur={actif === m.id && ok ? c.ok : conseille?.id === m.id ? c.accent : undefined}>
-            <Titre>{m.nom}</Titre>
+            <Titre>{t(m.nom)}</Titre>
             <Texte muted>
-              {formatTaille(m.octets)} · {m.ramMinGo} Go de mémoire minimum
-              {conseille?.id === m.id ? ' · CONSEILLÉ pour ton téléphone' : ''}
+              {formatTaille(m.octets)} · {m.ramMinGo} {t(" Go de mémoire minimum")}{conseille?.id === m.id ? t(" · CONSEILLÉ pour ton téléphone") : ''}
             </Texte>
-            <Texte>{m.description}</Texte>
+            <Texte>{t(m.description)}</Texte>
             {ok ? (
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <View style={{ flex: 1 }}>
                   <Bouton
-                    label={actif === m.id ? 'Utilisé ✓' : 'Utiliser'}
+                    label={actif === m.id ? t("Utilisé ✓") : t("Utiliser")}
                     discret={actif === m.id}
                     onPress={async () => {
                       await liberer();
@@ -169,7 +167,7 @@ export default function ReglagesIA() {
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Bouton label="Supprimer" icone="trash" discret onPress={() => retirer(m)} />
+                  <Bouton label={t("Supprimer")} icone="trash" discret onPress={() => retirer(m)} />
                 </View>
               </View>
             ) : d ? (
@@ -181,36 +179,35 @@ export default function ReglagesIA() {
                   {Math.round(d.progres * 100)} % · {formatTaille(d.progres * m.octets)} / {formatTaille(m.octets)}
                 </Texte>
                 <Bouton
-                  label={d.enPause ? 'Reprendre' : 'Pause'}
+                  label={d.enPause ? t("Reprendre") : t("Pause")}
                   icone={d.enPause ? 'play' : 'pause'}
                   discret
                   onPress={() => (d.enPause ? reprendre(m) : pause(m))}
                 />
               </>
             ) : (
-              <Bouton label={`Télécharger (${formatTaille(m.octets)})`} icone="download" discret={conseille?.id !== m.id} onPress={() => lancer(m)} />
+              <Bouton label={t("Télécharger ({v1})", { v1: formatTaille(m.octets) })} icone="download" discret={conseille?.id !== m.id} onPress={() => lancer(m)} />
             )}
           </Carte>
         );
       })}
 
-      <Sous>Diagnostic</Sous>
+      <Sous>{t("Diagnostic")}</Sous>
       <Bouton
-        label={test === '…' ? 'Test en cours…' : 'Tester l’IA'}
+        label={test === '…' ? t("Test en cours…") : t("Tester l’IA")}
         icone="speedometer"
         discret
         onPress={async () => {
           const m = MODELES.find((x) => x.id === actif);
-          if (!m || !installes[m.id] || test === '…') return setTest(m ? 'Le modèle choisi n’est pas installé.' : 'Aucun modèle choisi.');
+          if (!m || !installes[m.id] || test === '…') return setTest(m ? t("Le modèle choisi n’est pas installé.") : t("Aucun modèle choisi."));
           setTest('…');
           try {
             const r = await tester(m);
             setTest(
-              `Chargement : ${(r.chargementMs / 1000).toFixed(1)} s · premier mot : ${(r.premierMs / 1000).toFixed(1)} s · ${r.motsParSeconde} mots/s
-Réponse : « ${r.texte} »`,
+              t("Chargement : {v1} s · premier mot : {v2} s · {motsParSeconde} mots/s\nRéponse : « {texte} »", { v1: (r.chargementMs / 1000).toFixed(1), v2: (r.premierMs / 1000).toFixed(1), motsParSeconde: r.motsParSeconde, texte: r.texte }),
             );
           } catch (e) {
-            setTest(`Erreur : ${e instanceof Error ? e.message : String(e)}`);
+            setTest(t("Erreur : {v1}", { v1: e instanceof Error ? e.message : String(e) }));
           }
         }}
       />
@@ -222,11 +219,10 @@ Réponse : « ${r.texte} »`,
         </Carte>
       )}
 
-      <Sous>Sans Internet</Sous>
+      <Sous>{t("Sans Internet")}</Sous>
       <Texte muted>
-        Un proche a déjà le fichier du modèle ? Copie-le sur ton téléphone (câble USB, carte SD, partage de fichiers), puis importe-le ici.
-      </Texte>
-      <Bouton label="Importer un modèle depuis un fichier" icone="folder-open" discret onPress={importerFichier} />
+        {t("Un proche a déjà le fichier du modèle ? Copie-le sur ton téléphone (câble USB, carte SD, partage de fichiers), puis importe-le ici.")}</Texte>
+      <Bouton label={t("Importer un modèle depuis un fichier")} icone="folder-open" discret onPress={importerFichier} />
     </Ecran>
   );
 }

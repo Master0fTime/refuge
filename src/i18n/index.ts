@@ -15,19 +15,19 @@ type Code = Langue['code'];
 
 const UI: Partial<Record<Code, Record<string, string>>> = { de: UI_DE, it: UI_IT };
 
-function remplir(texte: string, valeurs?: Record<string, string | number>) {
-  return valeurs ? texte.replace(/\{(\w+)\}/g, (m, k: string) => (k in valeurs ? String(valeurs[k]) : m)) : texte;
+function remplir(texte: string, valeurs?: Record<string, unknown>) {
+  return valeurs ? texte.replace(/\{(\w+)\}/g, (m, k: string) => (k in valeurs ? String(valeurs[k] ?? '') : m)) : texte;
 }
 
 /** Traduit un texte d'interface. Les {variables} sont remplacées par `valeurs`. */
-export function t(fr: string, valeurs?: Record<string, string | number>, code: Code = langueActuelle().code) {
+export function t(fr: string, valeurs?: Record<string, unknown>, code: Code = langueActuelle().code) {
   return remplir(UI[code]?.[fr] ?? fr, valeurs);
 }
 
 /** Version « hook » : l'écran se met à jour dès qu'on change de langue. */
 export function useT() {
   const [langue] = useLangue();
-  return (fr: string, valeurs?: Record<string, string | number>) => t(fr, valeurs, langue.code);
+  return (fr: string, valeurs?: Record<string, unknown>) => t(fr, valeurs, langue.code);
 }
 
 // ───────────── Fiches ─────────────

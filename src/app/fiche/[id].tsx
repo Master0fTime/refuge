@@ -58,7 +58,7 @@ export default function FicheEcran() {
               L(f.resume),
               ...(f.etapes ?? []).map((e, i) => `${t('Étape {n}.', { n: i + 1 })} ${L(e)}`),
               ...(f.sansSecours?.length ? [t('Si personne ne peut venir.'), ...f.sansSecours.map(L)] : []),
-              ...(f.attention ?? []).map((a) => `Attention. ${L(a)}`),
+              ...(f.attention ?? []).map((a) => t("Attention. {v1}", { v1: L(a) })),
             ].join(' ');
             setLecture(true);
             dire(texte, { finie: () => setLecture(false) });

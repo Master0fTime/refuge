@@ -6,6 +6,7 @@ import { Bouton, Carte, Ecran, s, Sous, Texte } from '@/components/ui';
 import { KEYS, useStored } from '@/lib/store';
 import { c, space } from '@/lib/theme';
 import { dire, voixFrancaises, type ReglageVoix } from '@/lib/voix';
+import { t } from '@/i18n';
 
 const PHRASE = 'Je suis là avec toi. On va regarder ensemble ce qu’il faut faire, étape par étape.';
 const VITESSES = [
@@ -25,36 +26,36 @@ export default function ReglagesVoix() {
   const essayer = (identifiant: string | null) => {
     const avant = reglage;
     setReglage({ ...reglage, identifiant });
-    dire(PHRASE).finally(() => setReglage(avant));
+    dire(t(PHRASE)).finally(() => setReglage(avant));
   };
 
   return (
     <Ecran>
-      <Texte muted>Choisis la voix qui te parle le plus naturellement. Elle sert pour les réponses de l’IA et le mode panique.</Texte>
+      <Texte muted>{t("Choisis la voix qui te parle le plus naturellement. Elle sert pour les réponses de l’IA et le mode panique.")}</Texte>
 
-      <Sous>Vitesse</Sous>
+      <Sous>{t("Vitesse")}</Sous>
       <View style={{ flexDirection: 'row', gap: space.sm }}>
         {VITESSES.map((v) => (
           <View key={v.label} style={{ flex: 1 }}>
-            <Bouton label={v.label} discret={reglage.vitesse !== v.valeur} onPress={() => setReglage({ ...reglage, vitesse: v.valeur })} />
+            <Bouton label={t(v.label)} discret={reglage.vitesse !== v.valeur} onPress={() => setReglage({ ...reglage, vitesse: v.valeur })} />
           </View>
         ))}
       </View>
 
-      <Sous>Voix disponibles</Sous>
-      {voix === null && <Texte muted>Recherche des voix…</Texte>}
-      {voix?.length === 0 && <Texte>Aucune voix française installée. Installe-en une avec le bouton plus bas.</Texte>}
+      <Sous>{t("Voix disponibles")}</Sous>
+      {voix === null && <Texte muted>{t("Recherche des voix…")}</Texte>}
+      {voix?.length === 0 && <Texte>{t("Aucune voix française installée. Installe-en une avec le bouton plus bas.")}</Texte>}
       {voix?.map((v, i) => {
         const choisie = reglage.identifiant === v.identifier || (!reglage.identifiant && i === 0);
         return (
           <View key={v.identifier} style={[s.ligne, choisie && { borderWidth: 2, borderColor: c.accent }]}>
             <View style={{ flex: 1 }}>
               <Text style={s.ligneTitre}>
-                Voix {i + 1} {i === 0 ? '(conseillée)' : ''}
+                {t("Voix ")}{i + 1} {i === 0 ? t("(conseillée)") : ''}
               </Text>
               <Text style={s.ligneSous}>
-                {v.language} · {v.quality === 'Enhanced' ? 'haute qualité' : 'standard'}
-                {/network/i.test(v.identifier) ? ' · demande Internet' : ''}
+                {v.language} · {v.quality === 'Enhanced' ? t("haute qualité") : 'standard'}
+                {/network/i.test(v.identifier) ? t(" · demande Internet") : ''}
               </Text>
             </View>
             <Pressable onPress={() => essayer(v.identifier)} hitSlop={8}>
@@ -69,11 +70,11 @@ export default function ReglagesVoix() {
 
       {Platform.OS === 'android' && (
         <>
-          <Sous>Des voix plus naturelles</Sous>
+          <Sous>{t("Des voix plus naturelles")}</Sous>
           <Carte>
-            <Texte>Les voix de Google sont bien plus naturelles que celles installées par défaut sur certains téléphones (Samsung notamment).</Texte>
-            <Texte>1. Ouvre les réglages ci-dessous.{'\n'}2. Moteur préféré : « Services Google » (Speech Services by Google).{'\n'}3. Dans ses réglages : « Installer les données vocales » → Français → télécharge la voix.{'\n'}4. Reviens ici et choisis-la.</Texte>
-            <Bouton label="Ouvrir les réglages de synthèse vocale" icone="settings" discret onPress={() => Linking.sendIntent('com.android.settings.TTS_SETTINGS').catch(() => Linking.openSettings())} />
+            <Texte>{t("Les voix de Google sont bien plus naturelles que celles installées par défaut sur certains téléphones (Samsung notamment).")}</Texte>
+            <Texte>{t("1. Ouvre les réglages ci-dessous.")}{'\n'}{t("2. Moteur préféré : « Services Google » (Speech Services by Google).")}{'\n'}{t("3. Dans ses réglages : « Installer les données vocales » → Français → télécharge la voix.")}{'\n'}{t("4. Reviens ici et choisis-la.")}</Texte>
+            <Bouton label={t("Ouvrir les réglages de synthèse vocale")} icone="settings" discret onPress={() => Linking.sendIntent('com.android.settings.TTS_SETTINGS').catch(() => Linking.openSettings())} />
           </Carte>
         </>
       )}

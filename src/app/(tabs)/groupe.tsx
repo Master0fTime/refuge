@@ -9,6 +9,7 @@ import { positionActuelle } from '@/lib/position';
 import { KEYS, useStored } from '@/lib/store';
 import { c } from '@/lib/theme';
 import { profilVide, type Contact, type Groupe, type Profil } from '@/lib/types';
+import { t } from '@/i18n';
 
 export default function GroupeEcran() {
   const [profil] = useStored<Profil>(KEYS.profil, profilVide(''));
@@ -25,7 +26,7 @@ export default function GroupeEcran() {
       nom,
       points: [],
       plan: { consignes: '', canalRadio: '', vacations: '', motCode: '' },
-      membres: [{ id: profil.id, nom: `${profil.prenom} ${profil.nom}`.trim() || 'Moi', telephone: profil.telephone || undefined }],
+      membres: [{ id: profil.id, nom: `${profil.prenom} ${profil.nom}`.trim() || t("Moi"), telephone: profil.telephone || undefined }],
       majLe: Date.now(),
     };
     setGroupes([...groupes, g]);
@@ -38,12 +39,12 @@ export default function GroupeEcran() {
     try {
       const pos = await positionActuelle();
       const { latitude: la, longitude: lo, accuracy } = pos.coords;
-      const nom = profil.prenom || 'Moi';
+      const nom = profil.prenom || t("Moi");
       await Share.share({
-        message: `${nom} : je suis ici → ${la.toFixed(5)}, ${lo.toFixed(5)} (±${Math.round(accuracy ?? 0)} m)\nhttps://www.openstreetmap.org/?mlat=${la.toFixed(5)}&mlon=${lo.toFixed(5)}#map=17/${la.toFixed(5)}/${lo.toFixed(5)}`,
+        message: t("{nom} : je suis ici → {v2}, {v3} (±{v4} m)\nhttps://www.openstreetmap.org/?mlat={v5}&mlon={v6}#map=17/{v7}/{v8}", { nom, v2: la.toFixed(5), v3: lo.toFixed(5), v4: Math.round(accuracy ?? 0), v5: la.toFixed(5), v6: lo.toFixed(5), v7: la.toFixed(5), v8: lo.toFixed(5) }),
       });
     } catch (e) {
-      Alert.alert('Position', String(e instanceof Error ? e.message : e));
+      Alert.alert(t("Position"), String(e instanceof Error ? e.message : e));
     } finally {
       setEnvoi(false);
     }
@@ -53,9 +54,9 @@ export default function GroupeEcran() {
     setContacts(contacts.map((x) => (x.id === id ? { ...x, prioritaire: !x.prioritaire } : x)));
 
   const supprimerContact = (x: Contact) =>
-    Alert.alert('Supprimer', `Retirer ${x.nom} de tes contacts ?`, [
-      { text: 'Annuler' },
-      { text: 'Supprimer', style: 'destructive', onPress: () => setContacts(contacts.filter((y) => y.id !== x.id)) },
+    Alert.alert(t("Supprimer"), t("Retirer {nom} de tes contacts ?", { nom: x.nom }), [
+      { text: t("Annuler") },
+      { text: t("Supprimer"), style: 'destructive', onPress: () => setContacts(contacts.filter((y) => y.id !== x.id)) },
     ]);
 
   const tries = [...contacts].sort((a, b) => Number(b.prioritaire) - Number(a.prioritaire) || a.nom.localeCompare(b.nom));
@@ -64,35 +65,34 @@ export default function GroupeEcran() {
     <Ecran>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <View style={{ flex: 1 }}>
-          <Bouton label="Mon QR" icone="qr-code" onPress={() => router.push('/mon-qr')} />
+          <Bouton label={t("Mon QR")} icone="qr-code" onPress={() => router.push('/mon-qr')} />
         </View>
         <View style={{ flex: 1 }}>
-          <Bouton label="Scanner" icone="scan" onPress={() => router.push('/scanner')} />
+          <Bouton label={t("Scanner")} icone="scan" onPress={() => router.push('/scanner')} />
         </View>
       </View>
       <BoutonsStatut />
-      <Bouton label={envoi ? 'Localisation…' : 'Envoyer ma position (SMS…)'} icone="navigate" discret onPress={partagerPosition} />
+      <Bouton label={envoi ? t("Localisation…") : t("Envoyer ma position (SMS…)")} icone="navigate" discret onPress={partagerPosition} />
       <Texte muted>
-        Tout s’échange de téléphone à téléphone par QR code, sans Internet ni serveur. Faites-le maintenant, ensemble, pendant que tout va bien.
-      </Texte>
+        {t("Tout s’échange de téléphone à téléphone par QR code, sans Internet ni serveur. Faites-le maintenant, ensemble, pendant que tout va bien.")}</Texte>
 
-      <Sous>Mes groupes et plans</Sous>
+      <Sous>{t("Mes groupes et plans")}</Sous>
       {groupes.map((g) => (
         <Ligne
           key={g.id}
           titre={g.nom}
-          sous={`${g.points.length} point(s) de ralliement · ${g.membres.length} membre(s)`}
+          sous={t("{length} point(s) de ralliement · {length2} membre(s)", { length: g.points.length, length2: g.membres.length })}
           icone="people"
           onPress={() => router.push(`/groupe/${g.id}`)}
         />
       ))}
       <Carte>
-        <Champ label="Nouveau groupe" placeholder="ex. Famille, Amis du quartier…" value={nomGroupe} onChangeText={setNomGroupe} />
-        <Bouton label="Créer le groupe" icone="add" discret onPress={creerGroupe} />
+        <Champ label={t("Nouveau groupe")} placeholder={t("ex. Famille, Amis du quartier…")} value={nomGroupe} onChangeText={setNomGroupe} />
+        <Bouton label={t("Créer le groupe")} icone="add" discret onPress={creerGroupe} />
       </Carte>
 
-      <Sous>Mes contacts ({contacts.length})</Sous>
-      {tries.length === 0 && <Texte muted>Scanne le QR code de tes proches pour les ajouter.</Texte>}
+      <Sous>{t("Mes contacts (")}{contacts.length})</Sous>
+      {tries.length === 0 && <Texte muted>{t("Scanne le QR code de tes proches pour les ajouter.")}</Texte>}
       {tries.map((x) => (
         <Pressable key={x.id} style={s.ligne} onLongPress={() => supprimerContact(x)}>
           <Pressable onPress={() => basculerPrio(x.id)} hitSlop={10}>
@@ -114,7 +114,7 @@ export default function GroupeEcran() {
           ) : null}
         </Pressable>
       ))}
-      {tries.length > 0 && <Texte muted>★ = prioritaire (affiché sur ta carte d’urgence). Appui long pour supprimer.</Texte>}
+      {tries.length > 0 && <Texte muted>{t("★ = prioritaire (affiché sur ta carte d’urgence). Appui long pour supprimer.")}</Texte>}
     </Ecran>
   );
 }

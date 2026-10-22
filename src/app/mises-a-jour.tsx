@@ -6,6 +6,7 @@ import { NOUVEAUTES } from '@/data/version';
 import { formatTaille } from '@/lib/ia/modeles';
 import { useApkDisponible, appliquerContenu, installerApk, verifierContenu, versionInstallee, type EtatContenu } from '@/lib/mises-a-jour';
 import { c } from '@/lib/theme';
+import { t } from '@/i18n';
 
 const date = (d: Date | string) =>
   new Date(d).toLocaleDateString('fr-CH', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -33,7 +34,7 @@ export default function MisesAJour() {
     try {
       await installerApk(setProgresApk);
     } catch (e) {
-      Alert.alert('Installation impossible', String(e instanceof Error ? e.message : e));
+      Alert.alert(t("Installation impossible"), String(e instanceof Error ? e.message : e));
     } finally {
       setProgresApk(null);
     }
@@ -41,18 +42,17 @@ export default function MisesAJour() {
 
   return (
     <Ecran>
-      <Titre>Refuge {v.version}</Titre>
+      <Titre>{t("Refuge ")}{v.version}</Titre>
       <Texte muted>
-        Version de l’appli : {v.version} (n° {v.build}){'\n'}
-        Contenu : {v.contenu ? `mise à jour du ${date(v.contenu)} (${v.idContenu})` : 'version d’origine de l’appli'}
+        {t("Version de l’appli : ")}{v.version} (n° {v.build}){'\n'}
+        {t("Contenu : ")}{v.contenu ? t("mise à jour du {v1} ({idContenu})", { v1: date(v.contenu), idContenu: v.idContenu }) : t("version d’origine de l’appli")}
       </Texte>
 
       {apk && (
         <Carte couleur={c.danger}>
-          <Texte>Une nouvelle version COMPLÈTE de Refuge ({apk.version}) est disponible : elle apporte de nouvelles fonctions.</Texte>
+          <Texte>{t("Une nouvelle version COMPLÈTE de Refuge (")}{apk.version}{t(") est disponible : elle apporte de nouvelles fonctions.")}</Texte>
           <Texte muted>
-            {formatTaille(apk.octets)} · publiée le {new Date(apk.date).toLocaleDateString('fr-CH')} · tes données sont conservées
-          </Texte>
+            {formatTaille(apk.octets)} {t(" · publiée le ")}{new Date(apk.date).toLocaleDateString('fr-CH')} {t(" · tes données sont conservées")}</Texte>
           {progresApk !== null ? (
             <>
               <View style={{ height: 10, backgroundColor: c.cardAlt, borderRadius: 5, overflow: 'hidden' }}>
@@ -61,47 +61,47 @@ export default function MisesAJour() {
               <Texte muted>{Math.round(progresApk * 100)} %</Texte>
             </>
           ) : (
-            <Bouton label="Télécharger et installer" icone="download" grand onPress={installerNouvelleVersion} />
+            <Bouton label={t("Télécharger et installer")} icone="download" grand onPress={installerNouvelleVersion} />
           )}
-          <Texte muted>Android te demandera d’autoriser l’installation depuis Refuge (une seule fois), puis de confirmer « Mettre à jour ».</Texte>
+          <Texte muted>{t("Android te demandera d’autoriser l’installation depuis Refuge (une seule fois), puis de confirmer « Mettre à jour ».")}</Texte>
         </Carte>
       )}
 
-      <Sous>Mise à jour du contenu</Sous>
+      <Sous>{t("Mise à jour du contenu")}</Sous>
       <Carte couleur={prete ? c.ok : isUpdateAvailable ? c.accent : undefined}>
         {prete ? (
           <>
             <Texte>
-              Une mise à jour est téléchargée et prête{availableUpdate?.createdAt ? ` (du ${date(availableUpdate.createdAt)})` : ''}.
+              {t("Une mise à jour est téléchargée et prête")}{availableUpdate?.createdAt ? ` (du ${date(availableUpdate.createdAt)})` : ''}.
             </Texte>
-            <Bouton label="Installer maintenant (redémarre l’appli)" icone="refresh" grand couleur={c.ok} onPress={appliquerContenu} />
+            <Bouton label={t("Installer maintenant (redémarre l’appli)")} icone="refresh" grand couleur={c.ok} onPress={appliquerContenu} />
           </>
         ) : (
           <>
             <Texte>
               {isDownloading
-                ? `Téléchargement… ${Math.round((downloadProgress ?? 0) * 100)} %`
+                ? t("Téléchargement… {v1} %", { v1: Math.round((downloadProgress ?? 0) * 100) })
                 : etat === 'verif'
-                  ? 'Recherche de mise à jour…'
+                  ? t("Recherche de mise à jour…")
                   : etat === 'a-jour'
-                    ? 'Refuge est à jour ✓'
+                    ? t("Refuge est à jour ✓")
                     : etat === 'hors-ligne'
-                      ? 'Pas de connexion : impossible de vérifier. Réessaie quand tu as Internet.'
+                      ? t("Pas de connexion : impossible de vérifier. Réessaie quand tu as Internet.")
                       : etat === 'indisponible'
-                        ? 'Vérification indisponible dans cette version (mode développement).'
+                        ? t("Vérification indisponible dans cette version (mode développement).")
                         : ''}
             </Texte>
-            <Bouton label="Rechercher une mise à jour" icone="cloud-download" discret onPress={verifier} />
+            <Bouton label={t("Rechercher une mise à jour")} icone="cloud-download" discret onPress={verifier} />
           </>
         )}
       </Carte>
-      <Texte muted>Refuge vérifie aussi tout seul à chaque ouverture, quand Internet est disponible, et te prévient sur l’accueil.</Texte>
+      <Texte muted>{t("Refuge vérifie aussi tout seul à chaque ouverture, quand Internet est disponible, et te prévient sur l’accueil.")}</Texte>
 
-      <Sous>Nouveautés</Sous>
+      <Sous>{t("Nouveautés")}</Sous>
       {NOUVEAUTES.map((n) => (
         <Carte key={n.version}>
           <Texte>
-            Version {n.version} · {new Date(n.date).toLocaleDateString('fr-CH')}
+            {t("Version ")}{n.version} · {new Date(n.date).toLocaleDateString('fr-CH')}
           </Texte>
           {n.points.map((p, i) => (
             <Texte key={i} muted>

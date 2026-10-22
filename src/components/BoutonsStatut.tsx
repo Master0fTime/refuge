@@ -15,7 +15,7 @@ export function BoutonsStatut() {
     try {
       await envoyerStatut(s);
     } catch (e) {
-      Alert.alert('Message non préparé', String(e instanceof Error ? e.message : e));
+      Alert.alert(t("Message non préparé"), String(e instanceof Error ? e.message : e));
     } finally {
       setEnCours(null);
     }

@@ -61,6 +61,12 @@ const VIDES = new Set(
     ' ',
   ),
 );
+// Les mêmes en allemand et en italien (texte sans accents ni trémas).
+for (const m of (
+  'der die das den dem des ein eine einen einem einer und oder in im an am auf mit ohne von vom zu zum zur fur ist sind bin bist hat habe haben ich du er sie es wir ihr mein dein sein was wie wann warum wo kann konnen muss soll will nicht kein keine sehr auch noch hilfe helfen bitte mir mich dir dich hallo ' +
+  'il lo la gli le un uno una di da del della dei delle in nel nella su sul sulla con per tra fra e o che chi cosa come quando perche dove sono sei ha hanno ho io tu lui lei noi voi loro mio mia tuo tua suo sua non piu molto anche aiuto aiutare posso puoi devo deve fare ciao'
+).split(' '))
+  VIDES.add(m);
 
 /** Variante sans accents ni pluriel simple, pour être tolérant aux fautes de frappe courantes. */
 export function motsCles(q: string) {

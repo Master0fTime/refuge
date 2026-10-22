@@ -10,13 +10,21 @@ import { Bouton, Carte, Texte } from '@/components/ui';
 import { detecter, type Alerte } from '@/lib/ia/garde-fous';
 import { estInstalle, MODELES } from '@/lib/ia/modeles';
 import { arreter, charger, repondre, type Message } from '@/lib/ia/moteur';
+import { chercherEncyclopedie, type PassageEncyclopedie } from '@/lib/encyclopedie';
 import { chercher, type Resultat } from '@/lib/recherche';
 import { KEYS, useStored } from '@/lib/store';
 import { c, space } from '@/lib/theme';
 import { arreterEtTranscrire, arreterLecture, demarrerEnregistrement, lireReponse, voixInstallee } from '@/lib/voix';
 import { t } from '@/i18n';
 
-type Bulle = { role: 'user' | 'assistant'; texte: string; sources?: Resultat[]; alertes?: Alerte[]; sansIA?: boolean };
+type Bulle = {
+  role: 'user' | 'assistant';
+  texte: string;
+  sources?: Resultat[];
+  encyclopedie?: PassageEncyclopedie[];
+  alertes?: Alerte[];
+  sansIA?: boolean;
+};
 type Etat = 'libre' | 'ecoute' | 'transcription' | 'chargement' | 'reponse';
 
 const EXEMPLES = [
@@ -79,13 +87,14 @@ export default function Demander() {
       .map((b) => b.texte)
       .join(' ');
     const sources = chercher(question, 4, derniers);
+    const encyclopedie = await chercherEncyclopedie(question, 2);
     const alertes = detecter(question);
     const historique: Message[] = bulles.filter((b) => !b.sansIA).map((b) => ({ role: b.role, content: b.texte }));
-    setBulles((b) => [...b, { role: 'user', texte: question }, { role: 'assistant', texte: '', sources, alertes, sansIA: !iaDispo }]);
+    setBulles((b) => [...b, { role: 'user', texte: question }, { role: 'assistant', texte: '', sources, encyclopedie, alertes, sansIA: !iaDispo }]);
 
     if (!iaDispo || !modele) {
       majDerniere({
-        texte: sources.length
+        texte: sources.length || encyclopedie.length
           ? t('L’IA n’est pas installée. Voici les fiches qui correspondent à ta question :')
           : t('Je n’ai pas trouvé de fiche sur ce sujet. Essaie avec d’autres mots, ou parcours l’onglet Savoir.'),
       });
@@ -98,12 +107,12 @@ export default function Demander() {
       setEtape('chargement');
       await charger(modele);
       setEtat('reponse');
-      const finale = (await repondre(question, sources, historique, (t) => majDerniere({ texte: t }), (p) => setEtape(p))).trim();
+      const finale = (await repondre(question, sources, historique, (t) => majDerniere({ texte: t }), (p) => setEtape(p), encyclopedie)).trim();
       majDerniere({ texte: finale });
       // Question posée à voix haute : la réponse est lue à voix haute (mains et yeux libres).
       if (parVoix) lireReponse(finale);
     } catch (e) {
-      majDerniere({ texte: `L’IA a rencontré un problème (${e instanceof Error ? e.message : e}). Les fiches ci-dessous restent valables.`, sansIA: true });
+      majDerniere({ texte: t("L’IA a rencontré un problème ({v1}). Les fiches ci-dessous restent valables.", { v1: e instanceof Error ? e.message : e }), sansIA: true });
     } finally {
       setEtat('libre');
     }
@@ -111,7 +120,7 @@ export default function Demander() {
 
   const ecouter = async () => {
     if (!voixDispo) {
-      Alert.alert('Commande vocale non installée', t('Installe-la depuis « Préparer mon téléphone » (environ 60 à 190 Mo).'), [
+      Alert.alert(t("Commande vocale non installée"), t('Installe-la depuis « Préparer mon téléphone » (environ 60 à 190 Mo).'), [
         { text: t('Plus tard') },
         { text: t('Installer'), onPress: () => router.push('/preparer') },
       ]);
@@ -123,7 +132,7 @@ export default function Demander() {
       await demarrerEnregistrement(() => finirEcoute());
       setEtat('ecoute');
     } catch (e) {
-      Alert.alert('Micro', String(e instanceof Error ? e.message : e));
+      Alert.alert(t("Micro"), String(e instanceof Error ? e.message : e));
     }
   };
 
@@ -135,13 +144,13 @@ export default function Demander() {
       const texte = await arreterEtTranscrire();
       if (!texte) {
         setEtat('libre');
-        Alert.alert('Je n’ai rien entendu', t('Rapproche le téléphone de ta bouche et réessaie.'));
+        Alert.alert(t("Je n’ai rien entendu"), t('Rapproche le téléphone de ta bouche et réessaie.'));
         return;
       }
       await envoyer(texte, true);
     } catch (e) {
       setEtat('libre');
-      Alert.alert('Reconnaissance vocale', String(e instanceof Error ? e.message : e));
+      Alert.alert(t("Reconnaissance vocale"), String(e instanceof Error ? e.message : e));
     }
   };
 
@@ -207,6 +216,26 @@ export default function Demander() {
                       <Text style={{ color: c.accent, fontWeight: '800' }}>[{n + 1}]</Text>
                       <Text style={{ color: c.text, flex: 1 }}>{s.fiche.titre}</Text>
                       <Ionicons name="chevron-forward" size={18} color={c.muted} />
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+              {!!b.encyclopedie?.length && (
+                <View style={{ gap: 6 }}>
+                  <Texte muted>{t('Encyclopédie (Wikipédia) :')}</Texte>
+                  {b.encyclopedie.map((p, n) => (
+                    <Pressable
+                      key={p.article}
+                      onPress={() => router.push(`/article/${p.article}`)}
+                      style={{ gap: 2, backgroundColor: c.cardAlt, borderRadius: 10, padding: space.sm + 2 }}>
+                      <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                        <Text style={{ color: c.info, fontWeight: '800' }}>[E{n + 1}]</Text>
+                        <Text style={{ color: c.text, flex: 1, fontWeight: '600' }}>{p.titre}</Text>
+                        <Ionicons name="chevron-forward" size={18} color={c.muted} />
+                      </View>
+                      <Text style={{ color: c.muted, fontSize: 13 }} numberOfLines={2}>
+                        {p.extrait}
+                      </Text>
                     </Pressable>
                   ))}
                 </View>

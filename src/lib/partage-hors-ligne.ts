@@ -3,14 +3,16 @@ import * as FS from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { PermissionsAndroid, Platform } from 'react-native';
 import { PartageLocal } from '../../modules/partage-local';
+import { PACKS_ENCYCLOPEDIE } from '@/lib/encyclopedie';
 import { DOSSIER_PARTAGE, estInstalle, formatTaille, MODELES, type Telechargeable } from '@/lib/ia/modeles';
 import { MODELES_VOIX } from '@/lib/voix';
+import { t } from '@/i18n';
 
 // Partager Refuge sans Internet : Wi-Fi local créé par le téléphone + petit serveur web.
 // Seul le dossier `partage/` (packs + page d'accueil) et l'APK sont accessibles :
 // la carte de vie, les groupes et les contacts vivent dans SQLite, ailleurs.
 
-export type PackPartage = Telechargeable & { type: 'ia' | 'voix'; nom: string };
+export type PackPartage = Telechargeable & { type: 'ia' | 'voix' | 'encyclopedie'; nom: string };
 export type Catalogue = { app: 'refuge'; version: string; apkOctets: number; packs: PackPartage[] };
 
 export const partageDisponible = () => PartageLocal !== null;
@@ -20,17 +22,19 @@ async function autoriser() {
   const perm =
     Number(Platform.Version) >= 33 ? 'android.permission.NEARBY_WIFI_DEVICES' : PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION;
   const r = await PermissionsAndroid.request(perm as typeof PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION, {
-    title: 'Wi-Fi local',
-    message: 'Refuge a besoin de cette autorisation pour créer un Wi-Fi local et partager l’appli sans Internet.',
+    title: t('Wi-Fi local'),
+    message: t('Refuge a besoin de cette autorisation pour créer un Wi-Fi local et partager l’appli sans Internet.'),
     buttonPositive: 'OK',
   });
-  if (r !== PermissionsAndroid.RESULTS.GRANTED) throw new Error('Autorisation refusée : impossible de créer le Wi-Fi local.');
+  if (r !== PermissionsAndroid.RESULTS.GRANTED) throw new Error(t('Autorisation refusée : impossible de créer le Wi-Fi local.'));
 }
 
 async function packsInstalles(): Promise<PackPartage[]> {
   const out: PackPartage[] = [];
   for (const m of MODELES) if (await estInstalle(m)) out.push({ ...m, type: 'ia', nom: `IA : ${m.nom}`, url: `modeles/${m.fichier}` });
   for (const m of MODELES_VOIX) if (await estInstalle(m)) out.push({ ...m, type: 'voix', nom: m.nom, url: `modeles/${m.fichier}` });
+  for (const m of PACKS_ENCYCLOPEDIE)
+    if (await estInstalle(m)) out.push({ ...m, type: 'encyclopedie', nom: `Encyclopédie (${m.langue.toUpperCase()})`, url: `modeles/${m.fichier}` });
   return out;
 }
 
@@ -66,7 +70,7 @@ let actif = false;
 
 /** Démarre le partage : renvoie le Wi-Fi à rejoindre et l'adresse de la page de téléchargement. */
 export async function demarrerPartage() {
-  if (!PartageLocal) throw new Error('Le partage hors ligne n’est disponible que sur Android.');
+  if (!PartageLocal) throw new Error(t('Le partage hors ligne n’est disponible que sur Android.'));
   await autoriser();
   const cat: Catalogue = {
     app: 'refuge',
@@ -89,7 +93,7 @@ export async function demarrerPartage() {
     ips.find(([, ip]) => ip.startsWith('192.168.')) ??
     ips.find(([n]) => /wlan/i.test(n)) ??
     ips[0];
-  if (!choisie) throw new Error('Impossible de trouver l’adresse du Wi-Fi local.');
+  if (!choisie) throw new Error(t('Impossible de trouver l’adresse du Wi-Fi local.'));
   return { ...wifi, url: `http://${choisie[1]}:${port}/`, catalogue: cat };
 }
 
@@ -108,10 +112,10 @@ export const qrWifi = (ssid: string, motDePasse: string) => {
 
 /** Plan B : envoyer l'APK par Quick Share, Bluetooth… via le menu de partage d'Android. */
 export async function envoyerApk() {
-  if (!PartageLocal) throw new Error('Disponible uniquement sur Android.');
+  if (!PartageLocal) throw new Error(t('Disponible uniquement sur Android.'));
   const copie = `${FS.cacheDirectory}Refuge.apk`;
   await FS.copyAsync({ from: `file://${PartageLocal.cheminApk()}`, to: copie });
-  await Sharing.shareAsync(copie, { mimeType: 'application/vnd.android.package-archive', dialogTitle: 'Envoyer Refuge' });
+  await Sharing.shareAsync(copie, { mimeType: 'application/vnd.android.package-archive', dialogTitle: t('Envoyer Refuge') });
 }
 
 // ───────────── Côté de l'ami qui reçoit ─────────────
@@ -119,8 +123,8 @@ export async function envoyerApk() {
 export async function lireCatalogue(adresse: string): Promise<{ base: string; catalogue: Catalogue }> {
   const base = adresse.trim().replace(/\/+$/, '').replace(/^(?!https?:\/\/)/, 'http://');
   const r = await fetch(`${base}/catalogue.json`);
-  if (!r.ok) throw new Error(`Le téléphone partageur ne répond pas (${r.status}).`);
+  if (!r.ok) throw new Error(t('Le téléphone partageur ne répond pas ({status}).', { status: r.status }));
   const catalogue = (await r.json()) as Catalogue;
-  if (catalogue.app !== 'refuge') throw new Error('Ce n’est pas un partage Refuge.');
+  if (catalogue.app !== 'refuge') throw new Error(t('Ce n’est pas un partage Refuge.'));
   return { base, catalogue };
 }

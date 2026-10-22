@@ -1,6 +1,7 @@
 import * as Device from 'expo-device';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FS from 'expo-file-system/legacy';
+import { t } from '@/i18n';
 
 /** Un gros fichier téléchargeable une fois puis utilisé hors ligne (modèle IA, modèle vocal…). */
 export type Telechargeable = { fichier: string; url: string; octets: number };
@@ -119,7 +120,7 @@ export async function importer<T extends Telechargeable>(liste: T[]): Promise<T 
   if (r.canceled) return null;
   const doc = r.assets[0];
   const m = liste.find((x) => x.fichier === doc.name);
-  if (!m) throw new Error(`Fichier non reconnu : ${doc.name}. Noms attendus :\n${liste.map((x) => x.fichier).join('\n')}`);
+  if (!m) throw new Error(t('Fichier non reconnu : {nom}. Noms attendus :\n{liste}', { nom: doc.name, liste: liste.map((x) => x.fichier).join('\n') }));
   await preparerDossier();
   await FS.copyAsync({ from: doc.uri, to: chemin(m) });
   return m;

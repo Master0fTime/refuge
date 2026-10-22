@@ -1,6 +1,7 @@
 import type { IconName } from '@/components/ui';
 import { estInstalle, modeleConseille, MODELES, type Telechargeable } from '@/lib/ia/modeles';
 import { cartesPretes } from '@/lib/cartes';
+import { encyclopedieInstallee, packEncyclopedie } from '@/lib/encyclopedie';
 import { voixConseillee, voixInstallee } from '@/lib/voix';
 
 // Tout ce qu'il faut télécharger UNE FOIS, tant qu'Internet fonctionne, pour que l'appli soit complète hors ligne.
@@ -45,8 +46,9 @@ export function packs(): Pack[] {
       id: 'encyclopedie',
       nom: 'Encyclopédie hors ligne',
       icone: 'library',
-      utilite: 'Wikipédia en français pour répondre aux questions générales. Bientôt disponible.',
-      disponible: false,
+      utilite: 'Wikipédia médecine : maladies, symptômes, traitements, premiers secours. L’IA s’en sert pour mieux expliquer.',
+      fichier: packEncyclopedie(),
+      disponible: true,
     },
     {
       id: 'cartes',
@@ -67,6 +69,7 @@ export async function packPret(p: Pack): Promise<boolean> {
   }
   if (p.id === 'voix') return (await voixInstallee()) !== null;
   if (p.id === 'cartes') return cartesPretes();
+  if (p.id === 'encyclopedie') return encyclopedieInstallee();
   return false;
 }
 

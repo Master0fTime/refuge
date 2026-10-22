@@ -2,6 +2,7 @@ import * as SMS from 'expo-sms';
 import { positionActuelle } from '@/lib/position';
 import { KEYS, lire } from '@/lib/store';
 import { profilVide, type Contact, type Groupe, type Profil } from '@/lib/types';
+import { t } from '@/i18n';
 
 // « Je vais bien » / « J'ai besoin d'aide » : un SMS prêt pour tout le groupe et les contacts prioritaires.
 // Le SMS passe souvent quand Internet et les appels sont saturés.
@@ -21,8 +22,8 @@ export function destinataires() {
 export async function envoyerStatut(statut: Statut) {
   const profil = lire<Profil>(KEYS.profil, profilVide(''));
   const nums = destinataires();
-  if (!nums.length) throw new Error('Aucun destinataire : ajoute tes proches (onglet Groupe) avec leur numéro, ou marque des contacts ★ prioritaires.');
-  if (!(await SMS.isAvailableAsync())) throw new Error('Ce téléphone ne peut pas envoyer de SMS.');
+  if (!nums.length) throw new Error(t("Aucun destinataire : ajoute tes proches (onglet Groupe) avec leur numéro, ou marque des contacts ★ prioritaires."));
+  if (!(await SMS.isAvailableAsync())) throw new Error(t("Ce téléphone ne peut pas envoyer de SMS."));
 
   let position = '';
   try {
@@ -31,15 +32,15 @@ export async function envoyerStatut(statut: Statut) {
       new Promise<never>((_, rej) => setTimeout(() => rej(new Error('lent')), 8000)), // pas d'attente infinie sans GPS
     ]);
     const { latitude: la, longitude: lo, accuracy } = p.coords;
-    position = `\nPosition : ${la.toFixed(5)}, ${lo.toFixed(5)} (±${Math.round(accuracy ?? 0)} m)`;
+    position = t("\nPosition : {v1}, {v2} (±{v3} m)", { v1: la.toFixed(5), v2: lo.toFixed(5), v3: Math.round(accuracy ?? 0) });
   } catch {
     // Sans position, le message part quand même.
   }
   const heure = new Date().toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' });
-  const nom = `${profil.prenom} ${profil.nom}`.trim() || 'Moi';
+  const nom = `${profil.prenom} ${profil.nom}`.trim() || t("Moi");
   const corps =
     statut === 'ok'
-      ? `[Refuge] ${nom} : JE VAIS BIEN (${heure}).${position}`
-      : `[Refuge] ${nom} : J'AI BESOIN D'AIDE (${heure}). Rappelle-moi ou viens si tu peux.${position}`;
+      ? t("[Refuge] {nom} : JE VAIS BIEN ({heure}).{position}", { nom, heure, position })
+      : t("[Refuge] {nom} : J'AI BESOIN D'AIDE ({heure}). Rappelle-moi ou viens si tu peux.{position}", { nom, heure, position });
   return SMS.sendSMSAsync(nums, corps);
 }

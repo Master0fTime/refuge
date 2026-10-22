@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { DERNIER_APK, type VersionApk } from '@/data/version';
 import { KEYS, lire, useStored, write } from '@/lib/store';
+import { t } from '@/i18n';
 
 // Deux sortes de mises à jour, un seul bouton pour l'utilisateur :
 // 1. contenu et code (fiches, écrans, IA) : EAS Update, appliqué en redémarrant l'appli ;
@@ -92,7 +93,7 @@ export const appliquerContenu = () => Updates.reloadAsync();
 /** Télécharge le nouvel APK puis ouvre l'installeur Android. */
 export async function installerApk(onProgres: (fraction: number) => void) {
   const apk = apkDisponible();
-  if (!apk) throw new Error('Aucune nouvelle version complète à installer.');
+  if (!apk) throw new Error(t("Aucune nouvelle version complète à installer."));
   const dest = `${FS.cacheDirectory}refuge-${apk.versionCode}.apk`;
   const info = await FS.getInfoAsync(dest);
   if (!info.exists || info.size < apk.octets * 0.99) {
@@ -100,7 +101,7 @@ export async function installerApk(onProgres: (fraction: number) => void) {
       onProgres(totalBytesWritten / (totalBytesExpectedToWrite > 0 ? totalBytesExpectedToWrite : apk.octets)),
     );
     const r = await tache.downloadAsync();
-    if (!r || r.status >= 400) throw new Error('Téléchargement impossible : vérifie ta connexion et réessaie.');
+    if (!r || r.status >= 400) throw new Error(t("Téléchargement impossible : vérifie ta connexion et réessaie."));
   }
   onProgres(1);
   const uri = await FS.getContentUriAsync(dest);

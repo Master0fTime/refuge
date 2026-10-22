@@ -24,7 +24,7 @@ export default function PaysEcran() {
   return (
     <Ecran>
       <Titre>
-        {pays.drapeau} {pays.nom}
+        {pays.drapeau} {t(pays.nom)}
       </Titre>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
         {PAYS.map((p) => (
@@ -33,7 +33,7 @@ export default function PaysEcran() {
             onPress={() => setPays(p.code)}
             style={{ paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, backgroundColor: p.code === pays.code ? c.accent : c.cardAlt }}>
             <Text style={{ color: p.code === pays.code ? '#000' : c.text, fontSize: 16, fontWeight: '700' }}>
-              {p.drapeau} {p.nom}
+              {p.drapeau} {t(p.nom)}
             </Text>
           </Pressable>
         ))}
@@ -60,10 +60,10 @@ export default function PaysEcran() {
       {pays.ambulance !== '112' && <LigneNumero nom={t('Ambulance, urgence médicale')} numero={pays.ambulance} />}
       <LigneNumero nom={t('Police')} numero={pays.police} />
       {pays.pompiers !== '112' && <LigneNumero nom={t('Pompiers')} numero={pays.pompiers} />}
-      <LigneNumero nom={t('Intoxication : {nom}', { nom: pays.antipoisonNom })} numero={pays.antipoison} />
-      <LigneNumero nom={t('Écoute, détresse : {nom}', { nom: pays.aidePsyNom })} numero={pays.aidePsy} />
+      <LigneNumero nom={t('Intoxication : {nom}', { nom: t(pays.antipoisonNom) })} numero={pays.antipoison} />
+      <LigneNumero nom={t('Écoute, détresse : {nom}', { nom: t(pays.aidePsyNom) })} numero={pays.aidePsy} />
       {pays.autres.map((a) => (
-        <LigneNumero key={a.numero + a.nom} nom={a.nom} numero={a.numero} />
+        <LigneNumero key={a.numero + a.nom} nom={t(a.nom)} numero={a.numero} />
       ))}
       {pays.sms && (
         <Pressable style={s.ligne} onPress={() => Linking.openURL(`sms:${pays.sms}`)}>
@@ -75,7 +75,7 @@ export default function PaysEcran() {
 
       <Sous>{t('Alertes et sirènes')}</Sous>
       <Carte couleur={c.danger}>
-        <Texte>{t('Application et alertes officielles : {app}.', { app: pays.alerteApp })}</Texte>
+        <Texte>{t('Application et alertes officielles : {app}.', { app: t(pays.alerteApp) })}</Texte>
         {pays.sirenes.map((t, i) => (
           <Texte key={i}>• {t}</Texte>
         ))}
@@ -83,7 +83,7 @@ export default function PaysEcran() {
 
       <Sous>{t('Radios à écouter')}</Sous>
       <Carte>
-        <Texte>{pays.radios}</Texte>
+        <Texte>{t(pays.radios)}</Texte>
         <Texte muted>{t('Garde une radio à piles ou à dynamo : elle marche même quand tout le reste est coupé.')}</Texte>
       </Carte>
 
@@ -91,7 +91,7 @@ export default function PaysEcran() {
         <>
           <Sous>{t('Abris')}</Sous>
           <Carte>
-            <Texte>{pays.abris}</Texte>
+            <Texte>{t(pays.abris)}</Texte>
           </Carte>
         </>
       )}
@@ -99,14 +99,14 @@ export default function PaysEcran() {
         <>
           <Sous>{t('Réserves conseillées')}</Sous>
           <Carte>
-            <Texte>{pays.provisions}</Texte>
+            <Texte>{t(pays.provisions)}</Texte>
           </Carte>
         </>
       )}
 
       <Sous>{t('Aide alimentaire et sociale')}</Sous>
       <Carte>
-        <Texte>{pays.orgsAide}</Texte>
+        <Texte>{t(pays.orgsAide)}</Texte>
       </Carte>
 
       {!pays.verifie && (

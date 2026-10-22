@@ -1,4 +1,5 @@
 import { PAYS, paysDuTelephone, type Pays } from '@/data/pays';
+import { t } from '@/i18n';
 import { langueActuelle, type Langue } from '@/lib/langue';
 import { KEYS, lire, useStored } from '@/lib/store';
 
@@ -44,12 +45,12 @@ function variables(p: Pays): Record<string, string> {
     pompiers: p.pompiers,
     ambulance: p.ambulance,
     antipoison: p.antipoison,
-    antipoisonNom: p.antipoisonNom,
+    antipoisonNom: t(p.antipoisonNom),
     aidePsy: p.aidePsy,
-    aidePsyNom: p.aidePsyNom,
-    radios: p.radios,
-    alerteApp: p.alerteApp,
-    orgsAide: p.orgsAide,
+    aidePsyNom: t(p.aidePsyNom),
+    radios: t(p.radios),
+    alerteApp: t(p.alerteApp),
+    orgsAide: t(p.orgsAide),
     smsOu: p.sms ? m.smsOu(p.sms) : '',
     smsSilencieux: m.smsSilencieux(p.sms),
   };
