@@ -19,6 +19,16 @@ export const DERNIER_APK: VersionApk | null = null;
 /** Notes de version, la plus récente en premier. Affichées dans « Mises à jour ». */
 export const NOUVEAUTES: { version: string; date: string; points: string[] }[] = [
   {
+    version: '0.8.0',
+    date: '2026-10-29',
+    points: [
+      'Nouvelle interface « montagne » : l’accueil ressemble à l’écran d’un téléphone, une tuile par outil (Secours, IA, Carte, Wikipédia, Photo, Numéros…).',
+      'Bouton SOS rouge au centre de la barre du bas, accessible depuis n’importe quel écran.',
+      'Premier lancement : un gros bouton « Tout préparer » télécharge tout le kit hors ligne d’un coup, et les tuiles s’allument au fur et à mesure.',
+      'Les autorisations utiles, une par une, avec la raison de chacune.',
+    ],
+  },
+  {
     version: '0.7.6',
     date: '2026-10-22',
     points: [

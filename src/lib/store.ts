@@ -49,4 +49,5 @@ export const KEYS = {
   reperes: 'reperes',
   langue: 'langue',
   apkGithub: 'apkGithub',
+  accueilVu: 'accueilVu',
 } as const;

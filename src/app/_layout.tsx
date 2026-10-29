@@ -23,6 +23,9 @@ export default function RootLayout() {
       <StatusBar style="light" />
       <Stack screenOptions={{ headerTintColor: c.text, headerBackButtonDisplayMode: 'minimal' }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="bienvenue" options={{ headerShown: false, animation: 'fade' }} />
+        <Stack.Screen name="autorisations" options={{ title: t('Autorisations') }} />
+        <Stack.Screen name="reglages" options={{ title: t('Réglages') }} />
         <Stack.Screen name="guide" options={{ title: t("Assistant") }} />
         <Stack.Screen name="rcp" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
         <Stack.Screen name="panique" options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }} />

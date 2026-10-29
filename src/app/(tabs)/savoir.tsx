@@ -1,15 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, Tabs, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Champ, Ecran, Ligne, s, Sous, Texte } from '@/components/ui';
 import { CATEGORIES, FICHES } from '@/data/fiches';
-import { chercherEncyclopedie, type PassageEncyclopedie } from '@/lib/encyclopedie';
+import { chercherEncyclopedie, encyclopedieInstallee, type PassageEncyclopedie } from '@/lib/encyclopedie';
 import { chercher } from '@/lib/recherche';
 import { c } from '@/lib/theme';
 import { t, traduireFiche } from '@/i18n';
 
 export default function Savoir() {
+  // Deux tuiles ouvrent cet écran : « Secours » (fiches) et « Wikipédia » (encyclopédie seule).
+  const { mode } = useLocalSearchParams<{ mode?: 'fiches' | 'encyclo' }>();
+  const wiki = mode === 'encyclo';
+  const [installee, setInstallee] = useState<boolean | null>(null);
   const [q, setQ] = useState('');
   const [ouverte, setOuverte] = useState<string | null>(null);
   const resultats = chercher(q, 20);
@@ -22,8 +26,33 @@ export default function Savoir() {
     return () => clearTimeout(minuteur);
   }, [q]);
 
+  useEffect(() => {
+    if (wiki) encyclopedieInstallee().then(setInstallee);
+    setQ('');
+  }, [wiki]);
+
+  if (wiki)
+    return (
+      <Ecran>
+        <Tabs.Screen options={{ title: t('Wikipédia') }} />
+        <Champ label={t('Chercher dans l’encyclopédie')} placeholder={t('ex. tétanos, entorse, fièvre…')} value={q} onChangeText={setQ} />
+        {installee === false && (
+          <>
+            <Texte muted>{t('L’encyclopédie n’est pas encore installée.')}</Texte>
+            <Ligne titre={t('Préparer mon téléphone')} icone="download" onPress={() => router.push('/preparer')} />
+          </>
+        )}
+        {q.trim() && installee && !encyclo.length && <Texte muted>{t('Aucun article trouvé. Essaie un autre mot.')}</Texte>}
+        {encyclo.map((p) => (
+          <Ligne key={p.article} titre={p.titre} sous={p.extrait} icone="library" onPress={() => router.push(`/article/${p.article}`)} />
+        ))}
+        {!q.trim() && installee && <Texte muted>{t('Environ 15 000 articles de médecine de Wikipédia, consultables sans Internet.')}</Texte>}
+      </Ecran>
+    );
+
   return (
     <Ecran>
+      <Tabs.Screen options={{ title: t('Secours') }} />
       <Champ label={t('Rechercher')} placeholder={t('ex. feu sans briquet, eau, plaie…')} value={q} onChangeText={setQ} />
 
       {q.trim() ? (

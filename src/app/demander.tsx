@@ -39,7 +39,7 @@ const EXEMPLES = [
 
 export default function Demander() {
   useKeepAwake();
-  const { voix } = useLocalSearchParams<{ voix?: string }>();
+  const { voix, photo } = useLocalSearchParams<{ voix?: string; photo?: string }>();
   const [actif] = useStored<string | null>(KEYS.modele, null);
   const [bulles, setBulles] = useState<Bulle[]>([]);
   const [q, setQ] = useState('');
@@ -81,6 +81,15 @@ export default function Demander() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voix, voixDispo]);
+
+  // Ouvert depuis la tuile « Photo » : on propose directement de choisir une photo.
+  useEffect(() => {
+    if (photo === '1' && visionDispo !== null && !autoLance.current) {
+      autoLance.current = true;
+      choisirPhoto();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [photo, visionDispo]);
 
   const majDerniere = (patch: Partial<Bulle>) =>
     setBulles((b) => b.map((x, i) => (i === b.length - 1 ? { ...x, ...patch } : x)));
