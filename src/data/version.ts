@@ -19,6 +19,15 @@ export const DERNIER_APK: VersionApk | null = null;
 /** Notes de version, la plus récente en premier. Affichées dans « Mises à jour ». */
 export const NOUVEAUTES: { version: string; date: string; points: string[] }[] = [
   {
+    version: '0.8.1',
+    date: '2026-10-30',
+    points: [
+      'Secours, Wikipédia, Carte et Outils s’ouvrent de nouveau depuis les tuiles.',
+      'La barre du bas ne passe plus sous les boutons du téléphone.',
+      'Nouvelle tuile « Discuter » : Bitchat pour s’écrire sans réseau (Bluetooth), Organic Maps pour les itinéraires hors ligne.',
+    ],
+  },
+  {
     version: '0.8.0',
     date: '2026-10-29',
     points: [

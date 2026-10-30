@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router, Tabs, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Champ, Ecran, Ligne, s, Sous, Texte } from '@/components/ui';
@@ -34,7 +34,7 @@ export default function Savoir() {
   if (wiki)
     return (
       <Ecran>
-        <Tabs.Screen options={{ title: t('Wikipédia') }} />
+        <Stack.Screen options={{ title: t('Wikipédia') }} />
         <Champ label={t('Chercher dans l’encyclopédie')} placeholder={t('ex. tétanos, entorse, fièvre…')} value={q} onChangeText={setQ} />
         {installee === false && (
           <>
@@ -52,7 +52,7 @@ export default function Savoir() {
 
   return (
     <Ecran>
-      <Tabs.Screen options={{ title: t('Secours') }} />
+      <Stack.Screen options={{ title: t('Secours') }} />
       <Champ label={t('Rechercher')} placeholder={t('ex. feu sans briquet, eau, plaie…')} value={q} onChangeText={setQ} />
 
       {q.trim() ? (

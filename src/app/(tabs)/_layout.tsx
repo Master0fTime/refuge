@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { router, Tabs } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { Pressable, Text, View, type ColorValue } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { IconName } from '@/components/ui';
 import { c } from '@/lib/theme';
 import { t } from '@/i18n';
@@ -42,20 +43,15 @@ function BoutonSOS({ onPress }: { onPress?: (e: never) => void }) {
   );
 }
 
-// Les écrans ouverts depuis une tuile gardent une flèche pour revenir aux tuiles.
-const retour = () => (
-  <Pressable onPress={() => router.navigate('/')} hitSlop={12} accessibilityLabel={t('Accueil')} style={{ marginLeft: 16 }}>
-    <Ionicons name="arrow-back" size={24} color={c.text} />
-  </Pressable>
-);
-
 export default function TabsLayout() {
+  // Hauteur explicite + marge des boutons Android (gestes ou 3 boutons) : sinon la barre passe dessous.
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: c.accent,
         tabBarInactiveTintColor: c.muted,
-        tabBarStyle: { backgroundColor: c.card, borderTopColor: c.border, height: undefined },
+        tabBarStyle: { backgroundColor: c.card, borderTopColor: c.border, height: 64 + insets.bottom, paddingBottom: insets.bottom + 6, paddingTop: 6 },
         tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
         headerStyle: { backgroundColor: c.bg },
         headerTintColor: c.text,
@@ -69,10 +65,6 @@ export default function TabsLayout() {
       />
       <Tabs.Screen name="groupe" options={{ title: t('Groupe'), tabBarIcon: icone('people') }} />
       <Tabs.Screen name="partage" options={{ title: t('Partager'), headerTitle: t('Partager Refuge'), tabBarIcon: icone('share-social') }} />
-      {/* Ouverts depuis les tuiles de l'accueil : la barre du bas reste visible, sans onglet à eux. */}
-      <Tabs.Screen name="savoir" options={{ title: t('Secours'), href: null, headerLeft: retour }} />
-      <Tabs.Screen name="carte" options={{ title: t('Carte'), href: null, headerLeft: retour }} />
-      <Tabs.Screen name="outils" options={{ title: t('Outils'), href: null, headerLeft: retour }} />
     </Tabs>
   );
 }

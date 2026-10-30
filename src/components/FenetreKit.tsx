@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Network from 'expo-network';
 import { useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bouton } from '@/components/ui';
 import { formatTaille } from '@/lib/ia/modeles';
 import { packs, type IdPack } from '@/lib/packs';
@@ -15,6 +16,7 @@ import { t } from '@/i18n';
  */
 export function FenetreKit({ visible, onFermer, onLance }: { visible: boolean; onFermer: () => void; onLance?: () => void }) {
   const { prets } = usePreparation();
+  const insets = useSafeAreaInsets();
   const liste = packs().filter((p) => p.disponible && p.id !== 'fiches');
   const [choix, setChoix] = useState<Partial<Record<IdPack, boolean>>>({});
   const [perso, setPerso] = useState(false);
@@ -46,7 +48,7 @@ export function FenetreKit({ visible, onFermer, onLance }: { visible: boolean; o
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onFermer}>
       <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' }} onPress={onFermer} />
-      <View style={{ backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: space.lg, gap: space.md, maxHeight: '85%' }}>
+      <View style={{ backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: space.lg, paddingBottom: space.lg + insets.bottom, gap: space.md, maxHeight: '85%' }}>
         <View style={{ alignSelf: 'center', width: 44, height: 5, borderRadius: 3, backgroundColor: c.border }} />
         <Text style={{ color: c.text, fontSize: 21, fontWeight: '800' }}>{t('Ce qui va être installé')}</Text>
         <ScrollView contentContainerStyle={{ gap: 2 }}>

@@ -24,7 +24,7 @@ const TUILES: Tuile[] = [
   { nom: 'Carte', icone: 'map', route: '/carte', pack: 'cartes' },
   { nom: 'Wikipédia', icone: 'library', route: { pathname: '/savoir', params: { mode: 'encyclo' } }, pack: 'encyclopedie' },
   { nom: 'Photo', icone: 'camera', route: { pathname: '/demander', params: { photo: '1' } }, pack: 'vision' },
-  { nom: 'Que faire ?', icone: 'help-buoy', route: '/guide' },
+  { nom: 'Discuter', icone: 'chatbubbles-outline', route: '/complements' },
   { nom: 'Numéros', icone: 'call', route: '/pays', rouge: true },
   { nom: 'Outils', icone: 'flashlight', route: '/outils' },
   { nom: 'Réglages', icone: 'settings', route: '/reglages' },
