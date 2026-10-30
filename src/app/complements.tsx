@@ -1,6 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { Linking, Text, View } from 'react-native';
-import { Bouton, Ecran, Sous, Texte } from '@/components/ui';
+import { Bouton, Ecran, Ligne, Sous, Texte } from '@/components/ui';
+import { KEYS, useStored } from '@/lib/store';
+import type { Groupe } from '@/lib/types';
 import { c, space } from '@/lib/theme';
 import { t } from '@/i18n';
 
@@ -31,8 +34,20 @@ const ouvrirStore = (paquet: string) =>
   Linking.openURL(`market://details?id=${paquet}`).catch(() => Linking.openURL(`https://play.google.com/store/apps/details?id=${paquet}`));
 
 export default function Complements() {
+  const [groupes] = useStored<Groupe[]>(KEYS.groupes, []);
   return (
     <Ecran>
+      <Sous>{t('Messagerie Refuge (Bluetooth)')}</Sous>
+      <Texte muted>{t('Écris à ton groupe sans Internet ni réseau : les messages passent par Bluetooth de téléphone Refuge en téléphone Refuge.')}</Texte>
+      {groupes.length ? (
+        groupes.map((g) => (
+          <Ligne key={g.id} titre={g.nom} sous={t('{n} membre(s)', { n: g.membres.length })} icone="bluetooth" onPress={() => router.push(`/discussion/${g.id}`)} />
+        ))
+      ) : (
+        <Ligne titre={t('Crée ou rejoins un groupe d’abord')} sous={t('Onglet Groupe : QR code à scanner entre proches')} icone="people" onPress={() => router.push('/groupe')} />
+      )}
+
+      <Sous>{t('Autres applis utiles')}</Sous>
       <Texte muted>
         {t('Deux applis libres et gratuites complètent Refuge. Installe-les MAINTENANT, tant qu’Internet fonctionne, et fais-les installer à tes proches.')}
       </Texte>

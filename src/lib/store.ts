@@ -50,4 +50,5 @@ export const KEYS = {
   langue: 'langue',
   apkGithub: 'apkGithub',
   accueilVu: 'accueilVu',
+  messages: 'messages',
 } as const;

@@ -48,6 +48,7 @@ export default function RootLayout() {
         <Stack.Screen name="fiche/[id]" options={{ title: '' }} />
         <Stack.Screen name="article/[id]" options={{ title: t('Encyclopédie') }} />
         <Stack.Screen name="groupe/[id]" options={{ title: t('Groupe') }} />
+        <Stack.Screen name="discussion/[id]" options={{ title: t('Discussion') }} />
         <Stack.Screen name="scanner" options={{ title: t("Scanner un QR code"), presentation: 'modal' }} />
         <Stack.Screen name="mon-qr" options={{ title: t("Mon QR code") }} />
         <Stack.Screen name="rejoindre" options={{ title: t("Rejoindre le point") }} />

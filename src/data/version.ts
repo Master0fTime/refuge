@@ -19,6 +19,16 @@ export const DERNIER_APK: VersionApk | null = null;
 /** Notes de version, la plus récente en premier. Affichées dans « Mises à jour ». */
 export const NOUVEAUTES: { version: string; date: string; points: string[] }[] = [
   {
+    version: '0.9.0',
+    date: '2026-10-30',
+    points: [
+      'Nouvelle version complète : messagerie de groupe par Bluetooth, sans Internet ni réseau mobile (tuile « Discuter » ou fiche du groupe).',
+      'Les messages sont chiffrés pour ton groupe et rebondissent sur les autres téléphones Refuge pour aller plus loin.',
+      '« Je vais bien » et « J’ai besoin d’aide » partent aussi par Bluetooth, en plus du SMS.',
+      'Rappels de préparation (batterie externe, réserves), à activer dans Réglages.',
+    ],
+  },
+  {
     version: '0.8.2',
     date: '2026-10-30',
     points: [

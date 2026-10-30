@@ -77,6 +77,8 @@ export default function GroupeDetail() {
     <Ecran>
       <Stack.Screen options={{ title: g.nom }} />
 
+      <Bouton label={t('Discuter sans réseau (Bluetooth)')} icone="bluetooth" grand onPress={() => router.push(`/discussion/${g.id}`)} />
+
       <Sous>{t("Partager avec le groupe")}</Sous>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <View style={{ flex: 1 }}>

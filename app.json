@@ -2,7 +2,7 @@
   "expo": {
     "name": "Refuge",
     "slug": "refuge",
-    "version": "0.7.0",
+    "version": "0.9.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -81,7 +81,7 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 220,
           "resizeMode": "contain",
-          "backgroundColor": "#030b11"
+          "backgroundColor": "#16211c"
         }
       ],
       "@maplibre/maplibre-react-native",
@@ -103,13 +103,13 @@
       [
         "expo-notifications",
         {
-          "color": "#f59e0b"
+          "color": "#efc61f"
         }
       ],
       "expo-asset"
     ],
     "scheme": "refuge",
-    "backgroundColor": "#101418",
+    "backgroundColor": "#16211c",
     "experiments": {
       "typedRoutes": true
     },

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Alert, View } from 'react-native';
 import { Bouton, Texte } from '@/components/ui';
+import { diffuserStatut } from '@/lib/maillage';
 import { destinataires, envoyerStatut, type Statut } from '@/lib/statut';
 import { c } from '@/lib/theme';
 import { t } from '@/i18n';
@@ -17,6 +18,8 @@ export function BoutonsStatut() {
     } catch (e) {
       Alert.alert(t("Message non préparé"), String(e instanceof Error ? e.message : e));
     } finally {
+      // Aussi par Bluetooth au groupe (après le SMS, pour ne pas superposer deux fenêtres) : passe même sans réseau.
+      diffuserStatut(s).catch(() => {});
       setEnCours(null);
     }
   };
