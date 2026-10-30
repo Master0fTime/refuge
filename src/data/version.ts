@@ -19,6 +19,14 @@ export const DERNIER_APK: VersionApk | null = null;
 /** Notes de version, la plus récente en premier. Affichées dans « Mises à jour ». */
 export const NOUVEAUTES: { version: string; date: string; points: string[] }[] = [
   {
+    version: '0.8.2',
+    date: '2026-10-30',
+    points: [
+      'Schéma du garrot : les textes ne se chevauchent plus.',
+      'Le texte ne passe plus sous les boutons du téléphone en bas de l’écran.',
+    ],
+  },
+  {
     version: '0.8.1',
     date: '2026-10-30',
     points: [

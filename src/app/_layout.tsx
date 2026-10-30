@@ -1,6 +1,8 @@
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import Storage from 'expo-sqlite/kv-store';
+import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { migrerAncienDossier } from '@/lib/ia/modeles';
 import { nouvelId } from '@/lib/id';
 import { KEYS, write } from '@/lib/store';
@@ -18,6 +20,7 @@ const theme = {
 };
 
 export default function RootLayout() {
+  const insets = useSafeAreaInsets();
   return (
     <ThemeProvider value={theme}>
       <StatusBar style="light" />
@@ -50,6 +53,8 @@ export default function RootLayout() {
         <Stack.Screen name="rejoindre" options={{ title: t("Rejoindre le point") }} />
         <Stack.Screen name="carte-urgence" options={{ title: t("Fond d’écran d’urgence") }} />
       </Stack>
+      {/* Bande opaque derrière les boutons Android : le texte ne défile plus dessous, illisible. */}
+      <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: insets.bottom, backgroundColor: c.card }} />
     </ThemeProvider>
   );
 }

@@ -7,9 +7,9 @@ import { t } from '@/i18n';
 // Schémas simples des gestes qui sauvent : traits épais, peu de détails, lisibles en un coup d'œil.
 
 const PEAU = '#e8c9a8';
-const TRAIT = '#f2f4f5';
-const ACCENT = '#f59e0b';
-const ROUGE = '#ef4444';
+const TRAIT = c.text;
+const ACCENT = c.accent;
+const ROUGE = c.danger;
 
 function Cadre({ children, hauteur = 210 }: { children: ReactElement | ReactElement[]; hauteur?: number }) {
   return (
@@ -105,28 +105,29 @@ function Etouffement() {
   );
 }
 
-/** Garrot : bande large au-dessus de la plaie, bâton pour serrer, heure notée. */
+/** Garrot : bande large au-dessus de la plaie, bâton pour serrer, heure notée. Chaque texte a sa propre ligne. */
 function Garrot() {
   return (
-    <Cadre hauteur={190}>
+    <Cadre hauteur={205}>
+      <Etiquette x={173} y={24} t={t("Bande large (4 cm et plus)")} />
       {/* Bras */}
       <Path d="M20 95 L320 95" stroke={PEAU} strokeWidth={46} strokeLinecap="round" />
       {/* Plaie */}
       <Ellipse cx={255} cy={95} rx={14} ry={8} fill={ROUGE} />
+      <Etiquette x={255} y={64} t={t("Plaie")} couleur={ROUGE} />
       {/* Bande et bâton */}
       <Rect x={160} y={68} width={26} height={54} rx={4} fill="#3b4b5c" />
-      <Line x1={150} y1={58} x2={196} y2={132} stroke="#8b5a2b" strokeWidth={8} strokeLinecap="round" />
+      <Line x1={150} y1={46} x2={196} y2={132} stroke="#8b5a2b" strokeWidth={8} strokeLinecap="round" />
+      {/* Sens du cœur, sous le bras à gauche */}
+      <Etiquette x={22} y={142} t={t("← vers le cœur")} taille={12} ancre="start" />
       {/* Distance */}
       <Line x1={186} y1={140} x2={248} y2={140} stroke={ACCENT} strokeWidth={2} />
       <Etiquette x={217} y={158} t={t("5 à 7 cm")} couleur={ACCENT} />
-      <Etiquette x={173} y={45} t={t("Bande large (4 cm et plus)")} />
-      <Etiquette x={255} y={70} t={t("Plaie")} couleur={ROUGE} />
       {/* Heure */}
-      <Circle cx={60} cy={160} r={14} fill="none" stroke={TRAIT} strokeWidth={3} />
-      <Line x1={60} y1={160} x2={60} y2={151} stroke={TRAIT} strokeWidth={3} />
-      <Line x1={60} y1={160} x2={67} y2={163} stroke={TRAIT} strokeWidth={3} />
-      <Etiquette x={82} y={165} t={t("Note l’heure")} couleur={ACCENT} ancre="start" />
-      <Etiquette x={60} y={45} t={t("← vers le cœur")} taille={12} />
+      <Circle cx={40} cy={182} r={13} fill="none" stroke={TRAIT} strokeWidth={3} />
+      <Line x1={40} y1={182} x2={40} y2={174} stroke={TRAIT} strokeWidth={3} />
+      <Line x1={40} y1={182} x2={47} y2={185} stroke={TRAIT} strokeWidth={3} />
+      <Etiquette x={62} y={187} t={t("Note l’heure")} couleur={ACCENT} ancre="start" />
     </Cadre>
   );
 }
