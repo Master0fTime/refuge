@@ -1,15 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { Alert, KeyboardAvoidingView, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bouton, Texte } from '@/components/ui';
-import { geoUri } from '@/lib/geo';
-import { demarrer, envoyer, useMaillage, type MessageGroupe } from '@/lib/maillage';
+import { demarrer, envoyer, signalerModification, useMaillage, type MessageGroupe } from '@/lib/maillage';
 import { positionActuelle } from '@/lib/position';
 import { KEYS, useStored } from '@/lib/store';
 import { c, space } from '@/lib/theme';
-import type { Groupe } from '@/lib/types';
+import { profilVide, type Groupe, type Profil } from '@/lib/types';
 import { t } from '@/i18n';
 
 /** Discussion d'un groupe par Bluetooth : messages courts, « Je vais bien », « J'ai besoin d'aide », position. */
@@ -24,6 +23,8 @@ export default function Discussion() {
   const [probleme, setProbleme] = useState<string | null>(null);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const insets = useSafeAreaInsets();
+  const [profil, setProfil] = useStored<Profil>(KEYS.profil, profilVide(''));
+  const [prenom, setPrenom] = useState('');
 
   const allumer = async () => setProbleme(await demarrer());
 
@@ -32,6 +33,18 @@ export default function Discussion() {
   }, []);
 
   if (!g) return <Texte>{t('Groupe introuvable.')}</Texte>;
+
+  // Le nom affiché : le surnom donné sur ce téléphone, sinon celui que la personne a choisi.
+  const nomDe = (m: MessageGroupe) => {
+    const membre = g.membres.find((x) => x.id === m.de);
+    return membre?.surnom || (m.nom !== 'Sans nom' && m.nom !== 'Moi' ? m.nom : membre?.nom) || t('Sans nom');
+  };
+
+  const enregistrerPrenom = () => {
+    if (!prenom.trim()) return;
+    setProfil({ ...profil, prenom: prenom.trim() });
+    signalerModification(g.id);
+  };
 
   const envoyerTexte = async () => {
     const x = texte.trim();
@@ -87,13 +100,29 @@ export default function Discussion() {
         ref={scroll}
         contentContainerStyle={{ padding: space.lg, gap: space.sm }}
         onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: true })}>
+        {!profil.prenom.trim() && (
+          <View style={{ backgroundColor: c.card, borderRadius: 14, padding: space.md, gap: space.sm }}>
+            <Text style={{ color: c.text, fontSize: 15 }}>{t('Ton prénom, pour que ton groupe sache qui écrit :')}</Text>
+            <View style={{ flexDirection: 'row', gap: space.sm }}>
+              <TextInput
+                value={prenom}
+                onChangeText={setPrenom}
+                onSubmitEditing={enregistrerPrenom}
+                placeholder={t('Prénom')}
+                placeholderTextColor={c.muted}
+                style={{ flex: 1, backgroundColor: c.bg, color: c.text, borderRadius: 10, paddingHorizontal: space.md, fontSize: 16 }}
+              />
+              <Bouton label={t('OK')} onPress={enregistrerPrenom} />
+            </View>
+          </View>
+        )}
         {!liste.length && (
           <Texte muted>
             {t('Les messages passent de téléphone en téléphone par Bluetooth, sans réseau, jusqu’à environ 100 m, et rebondissent sur les autres téléphones Refuge. Garde l’appli ouverte. Seuls les membres du groupe peuvent les lire.')}
           </Texte>
         )}
         {liste.map((m) => (
-          <Bulle key={m.id} m={m} />
+          <Bulle key={m.id} m={m} nom={nomDe(m)} />
         ))}
       </ScrollView>
 
@@ -131,24 +160,33 @@ export default function Discussion() {
   );
 }
 
-function Bulle({ m }: { m: MessageGroupe }) {
+// Couleurs par type de message : fond + texte toujours contrastés, quel que soit l'expéditeur.
+const STYLES = {
+  ok: { fond: c.ok, texte: c.surJaune },
+  aide: { fond: c.danger, texte: '#ffffff' },
+  moi: { fond: c.accent, texte: c.surJaune },
+  autre: { fond: c.cardAlt, texte: c.text },
+};
+
+function Bulle({ m, nom }: { m: MessageGroupe; nom: string }) {
   const heure = new Date(m.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const couleur = m.k === 'aide' ? c.danger : m.k === 'ok' ? c.ok : m.moi ? c.accent : c.cardAlt;
+  const { fond, texte: encre } = m.k === 'ok' ? STYLES.ok : m.k === 'aide' ? STYLES.aide : m.moi ? STYLES.moi : STYLES.autre;
   const texte =
     m.k === 'ok' ? t('✅ Je vais bien') : m.k === 'aide' ? t('🆘 J’ai besoin d’aide') : m.k === 'pos' ? t('📍 Ma position') : (m.x ?? '');
-  const surCouleur = m.k === 'msg' && !m.moi ? c.text : c.surJaune;
+  const voir = () => router.push({ pathname: '/carte', params: { lat: String(m.la), lon: String(m.lo), nom: m.moi ? t('Ma position') : nom } });
   return (
-    <View style={{ alignSelf: m.moi ? 'flex-end' : 'flex-start', maxWidth: '85%', backgroundColor: couleur, borderRadius: 16, padding: space.md, gap: 4 }}>
-      {!m.moi && <Text style={{ color: surCouleur, fontWeight: '800', fontSize: 13 }}>{m.nom}</Text>}
-      <Text style={{ color: surCouleur, fontSize: 16 }}>{texte}</Text>
+    <View style={{ alignSelf: m.moi ? 'flex-end' : 'flex-start', maxWidth: '85%', backgroundColor: fond, borderRadius: 16, padding: space.md, gap: 4 }}>
+      {!m.moi && <Text style={{ color: encre, fontWeight: '800', fontSize: 13 }}>{nom}</Text>}
+      <Text style={{ color: encre, fontSize: 16 }}>{texte}</Text>
       {m.la !== undefined && m.lo !== undefined && (
-        <Pressable onPress={() => Linking.openURL(geoUri(m.la!, m.lo!, m.nom))}>
-          <Text style={{ color: surCouleur, textDecorationLine: 'underline', fontSize: 14 }}>
-            {m.la}, {m.lo} · {t('Ouvrir sur la carte')}
+        <Pressable onPress={voir} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.18)', borderRadius: 10, padding: 8 }}>
+          <Ionicons name="map" size={18} color={encre} />
+          <Text style={{ color: encre, fontSize: 14, fontWeight: '700', flexShrink: 1 }}>
+            {t('Voir sur la carte')} · {m.la}, {m.lo}
           </Text>
         </Pressable>
       )}
-      <Text style={{ color: surCouleur, fontSize: 11, opacity: 0.8, alignSelf: 'flex-end' }}>{heure}</Text>
+      <Text style={{ color: encre, fontSize: 11, alignSelf: 'flex-end' }}>{heure}</Text>
     </View>
   );
 }

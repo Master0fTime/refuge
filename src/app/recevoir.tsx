@@ -4,8 +4,11 @@ import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, View } from 'react-native';
 import { Bouton, Carte, Champ, Ecran, Texte, Titre } from '@/components/ui';
-import { estInstalle, finaliser, formatTaille, MODELES, modeleConseille, preparerDossier, telecharger } from '@/lib/ia/modeles';
+import { chemin, estInstalle, finaliser, formatTaille, MODELES, modeleConseille, preparerDossier, supprimer, telecharger } from '@/lib/ia/modeles';
+import { OfflineManager } from '@maplibre/maplibre-react-native';
+import { cartesPretes } from '@/lib/cartes';
 import { lireCatalogue, type Catalogue, type PackPartage } from '@/lib/partage-hors-ligne';
+import { rafraichir } from '@/lib/preparation';
 import { KEYS, useStored } from '@/lib/store';
 import { c } from '@/lib/theme';
 import { t } from '@/i18n';
@@ -25,7 +28,7 @@ export default function Recevoir() {
     if (!source) return;
     (async () => {
       const d: Record<string, boolean> = {};
-      for (const p of source.catalogue.packs) d[p.fichier] = await estInstalle(p);
+      for (const p of source.catalogue.packs) d[p.fichier] = p.type === 'cartes' ? await cartesPretes() : await estInstalle(p);
       setDeja(d);
     })();
   }, [source]);
@@ -57,6 +60,11 @@ export default function Recevoir() {
         const r = await telecharger(f, (x) => setProgres((pr) => ({ ...pr, [p.fichier]: x }))).downloadAsync();
         if (!r) throw new Error(t("Téléchargement interrompu."));
         await finaliser(f);
+        if (p.type === 'cartes') {
+          // Les cartes reçues rejoignent la base de cartes de ce téléphone, puis la copie est effacée.
+          await OfflineManager.mergeOfflineRegions(chemin(f).replace(/^file:\/\//, ''));
+          await supprimer(f);
+        }
         setDeja((d) => ({ ...d, [p.fichier]: true }));
         if (p.type === 'ia' && !actif) setActif(MODELES.find((m) => m.fichier === p.fichier)?.id ?? null);
       } catch (e) {
@@ -66,6 +74,7 @@ export default function Recevoir() {
       }
     }
     setEnCours(false);
+    rafraichir().catch(() => {});
     Alert.alert(t("C’est fait"), t("Refuge est prêt à fonctionner sans Internet."), [{ text: 'OK', onPress: () => router.back() }]);
   };
 

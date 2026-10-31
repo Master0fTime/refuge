@@ -5,7 +5,7 @@ import { Linking, Platform, Pressable, Text, View } from 'react-native';
 import { Bouton, Carte, Ecran, s, Sous, Texte } from '@/components/ui';
 import { KEYS, useStored } from '@/lib/store';
 import { c, space } from '@/lib/theme';
-import { dire, voixFrancaises, type ReglageVoix } from '@/lib/voix';
+import { dire, nomVoix, voixFrancaises, type ReglageVoix } from '@/lib/voix';
 import { t } from '@/i18n';
 
 const PHRASE = 'Je suis là avec toi. On va regarder ensemble ce qu’il faut faire, étape par étape.';
@@ -13,6 +13,11 @@ const VITESSES = [
   { label: 'Lente', valeur: 0.85 },
   { label: 'Normale', valeur: 1 },
   { label: 'Rapide', valeur: 1.15 },
+];
+const HAUTEURS = [
+  { label: 'Grave', valeur: 0.8 },
+  { label: 'Normale', valeur: 1 },
+  { label: 'Aiguë', valeur: 1.2 },
 ];
 
 export default function ReglagesVoix() {
@@ -42,7 +47,24 @@ export default function ReglagesVoix() {
         ))}
       </View>
 
+      <Sous>{t('Hauteur de la voix')}</Sous>
+      <View style={{ flexDirection: 'row', gap: space.sm }}>
+        {HAUTEURS.map((h) => (
+          <View key={h.label} style={{ flex: 1 }}>
+            <Bouton
+              label={t(h.label)}
+              discret={(reglage.hauteur ?? 1) !== h.valeur}
+              onPress={() => {
+                setReglage({ ...reglage, hauteur: h.valeur });
+                setTimeout(() => dire(t(PHRASE)), 50);
+              }}
+            />
+          </View>
+        ))}
+      </View>
+
       <Sous>{t("Voix disponibles")}</Sous>
+      <Texte muted>{t('Seules les voix installées sur le téléphone sont listées. Si elles se ressemblent toutes, installe les voix Google (plus bas) : elles sont bien plus variées.')}</Texte>
       {voix === null && <Texte muted>{t("Recherche des voix…")}</Texte>}
       {voix?.length === 0 && <Texte>{t("Aucune voix française installée. Installe-en une avec le bouton plus bas.")}</Texte>}
       {voix?.map((v, i) => {
@@ -51,11 +73,10 @@ export default function ReglagesVoix() {
           <View key={v.identifier} style={[s.ligne, choisie && { borderWidth: 2, borderColor: c.accent }]}>
             <View style={{ flex: 1 }}>
               <Text style={s.ligneTitre}>
-                {t("Voix ")}{i + 1} {i === 0 ? t("(conseillée)") : ''}
+                {nomVoix(v, i)} {i === 0 ? t("(conseillée)") : ''}
               </Text>
               <Text style={s.ligneSous}>
                 {v.language} · {v.quality === 'Enhanced' ? t("haute qualité") : 'standard'}
-                {/network/i.test(v.identifier) ? t(" · demande Internet") : ''}
               </Text>
             </View>
             <Pressable onPress={() => essayer(v.identifier)} hitSlop={8}>

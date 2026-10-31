@@ -38,7 +38,8 @@ export function fusionnerGroupe(groupes: Groupe[], recu: Groupe): Groupe[] {
   if (!local) return [...groupes, recu];
   const base = recu.majLe > local.majLe ? recu : local;
   const membres = [...local.membres];
-  for (const m of recu.membres) if (!membres.some((x) => x.id === m.id)) membres.push(m);
+  // Les surnoms donnés localement ne voyagent pas : on garde ceux de ce téléphone.
+  for (const { surnom: _, ...m } of recu.membres) if (!membres.some((x) => x.id === m.id)) membres.push(m);
   return groupes.map((g) => (g.id === recu.id ? { ...base, membres } : g));
 }
 

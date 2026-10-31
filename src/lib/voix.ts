@@ -171,8 +171,8 @@ function volumeMax(pcm: Uint8Array) {
 
 // ───────────── Lecture à voix haute (synthèse vocale du téléphone, hors ligne) ─────────────
 
-export type ReglageVoix = { identifiant: string | null; vitesse: number };
-const REGLAGE_DEFAUT: ReglageVoix = { identifiant: null, vitesse: 1 };
+export type ReglageVoix = { identifiant: string | null; vitesse: number; hauteur?: number };
+const REGLAGE_DEFAUT: ReglageVoix = { identifiant: null, vitesse: 1, hauteur: 1 };
 
 /** Voix installées pour la langue choisie, les plus naturelles d'abord (hors ligne, qualité « Enhanced »). */
 export async function voixFrancaises(): Promise<Speech.Voice[]> {
@@ -182,7 +182,30 @@ export async function voixFrancaises(): Promise<Speech.Voice[]> {
     (v.quality === Speech.VoiceQuality.Enhanced ? 4 : 0) +
     (/network/i.test(v.identifier) ? 0 : 2) + // les voix « network » demandent Internet
     (/-(CH|FR|DE|IT|GB)/i.test(v.language) ? 1 : 0);
-  return toutes.filter((v) => v.language.toLowerCase().startsWith(langue)).sort((a, b) => score(b) - score(a));
+  // Les voix « network » demandent Internet : hors ligne, le téléphone les remplace par sa voix par défaut,
+  // d'où l'impression que toutes les voix se ressemblent. On ne garde qu'une entrée par voix réelle.
+  const vues = new Set<string>();
+  return toutes
+    .filter((v) => v.language.toLowerCase().startsWith(langue) && !/network/i.test(v.identifier))
+    .sort((a, b) => score(b) - score(a))
+    .filter((v) => {
+      const cle = v.identifier.replace(/[-_]local$/i, '').toLowerCase();
+      if (vues.has(cle)) return false;
+      vues.add(cle);
+      return true;
+    });
+}
+
+/** Petit nom lisible : « Voix B (Google) », « Voix féminine 1 (Samsung)»… */
+export function nomVoix(v: Speech.Voice, i: number) {
+  const google = /-x-([a-z]{3})-/i.exec(v.identifier);
+  if (google) return t('Voix {lettre} (Google)', { lettre: google[1].slice(-1).toUpperCase() });
+  const samsung = /SMT([fmlh])(\d+)/i.exec(v.identifier);
+  if (samsung) {
+    const genre = /[fl]/i.test(samsung[1]) ? t('féminine') : t('masculine');
+    return t('Voix {genre} {n} (Samsung)', { genre, n: Number(samsung[2]) + 1 });
+  }
+  return t('Voix {n}', { n: i + 1 });
 }
 
 // Liste des voix par langue, gardée en mémoire (la demander au système est lent).
@@ -201,7 +224,7 @@ export async function dire(texte: string, options: { lent?: boolean; finie?: () 
   // Une voix choisie pour une autre langue est ignorée : on prend la plus naturelle de la langue.
   const voice = (r.identifiant && dispo.includes(r.identifiant) ? r.identifiant : dispo[0]) ?? undefined;
   Speech.stop();
-  Speech.speak(texte, { language: langue.voix, voice, rate: r.vitesse * (options.lent ? 0.9 : 1), pitch: 1, onDone: options.finie, onStopped: options.finie });
+  Speech.speak(texte, { language: langue.voix, voice, rate: r.vitesse * (options.lent ? 0.9 : 1), pitch: r.hauteur ?? 1, onDone: options.finie, onStopped: options.finie });
 }
 
 export function lireReponse(texte: string) {

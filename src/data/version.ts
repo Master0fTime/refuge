@@ -19,6 +19,18 @@ export const DERNIER_APK: VersionApk | null = null;
 /** Notes de version, la plus récente en premier. Affichées dans « Mises à jour ». */
 export const NOUVEAUTES: { version: string; date: string; points: string[] }[] = [
   {
+    version: '0.9.1',
+    date: '2026-10-31',
+    points: [
+      'Partage sans Internet complet : l’appli, l’IA, la voix, l’encyclopédie, la photo ET les cartes se copient d’un téléphone à l’autre.',
+      'Écran de bienvenue : « Pas d’Internet ? Récupérer depuis un proche ».',
+      'Le groupe se met à jour tout seul par Bluetooth : nouveaux membres, points, plan, prénoms.',
+      'Ton prénom pour le groupe, et un nom au choix pour chaque membre.',
+      'Discussion : couleurs lisibles, une position reçue s’ouvre dans la carte de Refuge.',
+      'Voix de l’IA : doublons retirés, noms clairs, réglage de la hauteur (grave, aiguë).',
+    ],
+  },
+  {
     version: '0.9.0',
     date: '2026-10-30',
     points: [

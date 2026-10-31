@@ -2,6 +2,7 @@ import * as Crypto from 'expo-crypto';
 import { useSyncExternalStore } from 'react';
 import { PermissionsAndroid, Platform } from 'react-native';
 import { Maillage } from '../../modules/maillage';
+import { fusionnerGroupe } from '@/lib/partage';
 import { KEYS, lire, write } from '@/lib/store';
 import { profilVide, type Groupe, type Profil } from '@/lib/types';
 import { t } from '@/i18n';
@@ -12,8 +13,8 @@ import { t } from '@/i18n';
 // - Chaque téléphone Refuge relaie les paquets qu'il reçoit (même ceux d'autres groupes, qu'il ne peut pas lire),
 //   jusqu'à RELAIS rebonds : les messages vont plus loin que la portée d'un seul téléphone.
 
-export type Genre = 'msg' | 'ok' | 'aide' | 'pos';
-export type MessageGroupe = { id: string; de: string; nom: string; k: Genre; x?: string; la?: number; lo?: number; ts: number; moi?: boolean };
+export type Genre = 'msg' | 'ok' | 'aide' | 'pos' | 'groupe';
+export type MessageGroupe = { id: string; de: string; nom: string; k: Genre; x?: string; la?: number; lo?: number; ts: number; moi?: boolean; g?: Groupe };
 
 /** Paquet transporté : lisible par tous les relais, sauf `c` (le contenu chiffré). */
 type Paquet = { v: 1; i: string; r: number; g: string; c: string };
@@ -107,12 +108,68 @@ async function recevoir(donnees: string) {
     try {
       const m = JSON.parse(clair) as Omit<MessageGroupe, 'id'>;
       if (m.de === moi) return;
+      if (m.k === 'groupe') return appliquerGroupe(g.id, m);
       ranger(g.id, { ...m, id: p.i, x: m.x?.slice(0, LONGUEUR_MAX) });
     } catch {
       // Contenu illisible : ignoré.
     }
     return;
   }
+}
+
+/**
+ * Mise à jour automatique du groupe : chaque téléphone annonce sa version du groupe (points, plan, membres).
+ * On fusionne, et l'expéditeur fait foi pour SON propre nom et numéro.
+ */
+function appliquerGroupe(id: string, m: Omit<MessageGroupe, 'id'>) {
+  if (!m.g || m.g.id !== id) return;
+  const groupes = fusionnerGroupe(lire<Groupe[]>(KEYS.groupes, []), m.g);
+  const lui = m.g.membres.find((x) => x.id === m.de);
+  write(
+    KEYS.groupes,
+    groupes.map((g) => {
+      if (g.id !== id) return g;
+      const membres = g.membres.some((x) => x.id === m.de)
+        ? g.membres.map((x) => (x.id === m.de ? { ...x, nom: m.nom, telephone: lui?.telephone ?? x.telephone } : x))
+        : [...g.membres, { id: m.de, nom: m.nom, telephone: lui?.telephone }];
+      return { ...g, membres };
+    }),
+  );
+}
+
+/** Mon nom tel que le groupe le voit. */
+export function monNom() {
+  const p = lire<Profil>(KEYS.profil, profilVide(''));
+  return `${p.prenom} ${p.nom}`.trim();
+}
+
+/** Ma version du groupe, avec ma fiche de membre à jour (nom, numéro). Sans les surnoms donnés localement. */
+function versionPartagee(g: Groupe): Groupe {
+  const p = lire<Profil>(KEYS.profil, profilVide(''));
+  const moi = { id: p.id, nom: monNom() || t('Sans nom'), telephone: p.telephone || undefined };
+  const autres = g.membres.filter((x) => x.id !== p.id).map(({ surnom: _, ...x }) => x);
+  return { ...g, membres: [moi, ...autres] };
+}
+
+let derniereAnnonce = 0;
+/** Annonce tous mes groupes aux téléphones autour (au plus une fois par minute). */
+export async function annoncerGroupes(force = false) {
+  if (!Maillage || !etat.actif || (!force && Date.now() - derniereAnnonce < 60_000)) return;
+  derniereAnnonce = Date.now();
+  for (const g of lire<Groupe[]>(KEYS.groupes, [])) await emettre(g, { k: 'groupe', g: versionPartagee(g) }, false);
+}
+
+const attentes = new Map<string, ReturnType<typeof setTimeout>>();
+/** Après une modification du groupe : on attend la fin de la saisie, puis on l'annonce. */
+export function signalerModification(id: string) {
+  clearTimeout(attentes.get(id));
+  attentes.set(
+    id,
+    setTimeout(() => {
+      const g = lire<Groupe[]>(KEYS.groupes, []).find((x) => x.id === id);
+      if (g && etat.actif) emettre(g, { k: 'groupe', g: versionPartagee(g) }, false).catch(() => {});
+    }, 5000),
+  );
 }
 
 /** Demande les autorisations Bluetooth, puis allume l'annonce et la recherche. Renvoie un message d'erreur ou null. */
@@ -122,7 +179,10 @@ export async function demarrer(): Promise<string | null> {
     maj({ erreur: m });
     return m;
   }
-  if (etat.actif) return null;
+  if (etat.actif) {
+    annoncerGroupes().catch(() => {});
+    return null;
+  }
   const bt = Maillage.etatBluetooth();
   if (bt === 'absent') return t('Ce téléphone n’a pas de Bluetooth compatible.');
   if (bt === 'eteint') return t('Le Bluetooth est éteint : allume-le dans les réglages rapides, puis réessaie.');
@@ -147,6 +207,7 @@ export async function demarrer(): Promise<string | null> {
   maj({ erreur: null });
   Maillage.demarrer();
   maj({ actif: true });
+  annoncerGroupes(true).catch(() => {});
   return null;
 }
 
@@ -157,21 +218,23 @@ export function arreter() {
 
 // ---------- Envoi ----------
 
-export async function envoyer(g: Groupe, contenu: Pick<MessageGroupe, 'k' | 'x' | 'la' | 'lo'>) {
+export const envoyer = (g: Groupe, contenu: Pick<MessageGroupe, 'k' | 'x' | 'la' | 'lo'>) => emettre(g, contenu, true);
+
+async function emettre(g: Groupe, contenu: Pick<MessageGroupe, 'k' | 'x' | 'la' | 'lo' | 'g'>, visible: boolean) {
   if (!Maillage) throw new Error(t('La messagerie Bluetooth demande la nouvelle version complète de Refuge (Réglages → Mises à jour).'));
   const profil = lire<Profil>(KEYS.profil, profilVide(''));
   const m: Omit<MessageGroupe, 'id'> = {
     ...contenu,
     x: contenu.x?.slice(0, LONGUEUR_MAX),
     de: profil.id,
-    nom: profil.prenom.trim() || t('Moi'),
+    nom: monNom() || t('Sans nom'),
     ts: Date.now(),
   };
   const { cle, tag } = await clesGroupe(g.id);
   const id = Array.from(Crypto.getRandomBytes(6), (o) => o.toString(16).padStart(2, '0')).join('');
   const paquet: Paquet = { v: 1, i: id, r: RELAIS, g: tag, c: Maillage.chiffrer(cle, JSON.stringify(m)) };
   vus.add(id);
-  ranger(g.id, { ...m, id, moi: true });
+  if (visible) ranger(g.id, { ...m, id, moi: true });
   Maillage.diffuser(id, b64.vers(JSON.stringify(paquet)), DUREE_MS);
 }
 

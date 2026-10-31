@@ -5,6 +5,7 @@ import { PermissionsAndroid, Platform } from 'react-native';
 import { PartageLocal } from '../../modules/partage-local';
 import { PACKS_ENCYCLOPEDIE } from '@/lib/encyclopedie';
 import { DOSSIER_PARTAGE, estInstalle, FICHIERS_VISION, formatTaille, MODELES, visionInstallee, type Telechargeable } from '@/lib/ia/modeles';
+import { cartesPretes } from '@/lib/cartes';
 import { MODELES_VOIX } from '@/lib/voix';
 import { t } from '@/i18n';
 
@@ -12,7 +13,7 @@ import { t } from '@/i18n';
 // Seul le dossier `partage/` (packs + page d'accueil) et l'APK sont accessibles :
 // la carte de vie, les groupes et les contacts vivent dans SQLite, ailleurs.
 
-export type PackPartage = Telechargeable & { type: 'ia' | 'voix' | 'encyclopedie' | 'vision'; nom: string };
+export type PackPartage = Telechargeable & { type: 'ia' | 'voix' | 'encyclopedie' | 'vision' | 'cartes'; nom: string };
 export type Catalogue = { app: 'refuge'; version: string; apkOctets: number; packs: PackPartage[] };
 
 export const partageDisponible = () => PartageLocal !== null;
@@ -36,7 +37,30 @@ async function packsInstalles(): Promise<PackPartage[]> {
   if (await visionInstallee()) for (const f of FICHIERS_VISION) out.push({ ...f, type: 'vision', nom: `Vision : ${f.fichier}`, url: `modeles/${f.fichier}` });
   for (const m of PACKS_ENCYCLOPEDIE)
     if (await estInstalle(m)) out.push({ ...m, type: 'encyclopedie', nom: `Encyclopédie (${m.langue.toUpperCase()})`, url: `modeles/${m.fichier}` });
+  const cartes = await copierCartes();
+  if (cartes) out.push(cartes);
   return out;
+}
+
+// Les cartes hors ligne vivent dans la base de MapLibre (dossier privé de l'appli) : on en copie un
+// instantané dans le dossier de partage le temps du partage ; l'ami la fusionne dans la sienne.
+const BASE_CARTES = `${FS.documentDirectory}mbgl-offline.db`;
+export const FICHIER_CARTES = 'cartes-hors-ligne.db';
+const COPIE_CARTES = `${DOSSIER_PARTAGE}modeles/${FICHIER_CARTES}`;
+
+async function copierCartes(): Promise<PackPartage | null> {
+  try {
+    if (!(await cartesPretes())) return null;
+    const info = await FS.getInfoAsync(BASE_CARTES);
+    if (!info.exists || info.isDirectory) return null;
+    if ((await FS.getFreeDiskStorageAsync()) < info.size * 1.1) return null;
+    await FS.makeDirectoryAsync(`${DOSSIER_PARTAGE}modeles/`, { intermediates: true }).catch(() => {});
+    await FS.deleteAsync(COPIE_CARTES, { idempotent: true });
+    await FS.copyAsync({ from: BASE_CARTES, to: COPIE_CARTES });
+    return { fichier: FICHIER_CARTES, octets: info.size, url: `modeles/${FICHIER_CARTES}`, type: 'cartes', nom: 'Cartes hors ligne' };
+  } catch {
+    return null;
+  }
 }
 
 async function tailleApk() {
@@ -61,7 +85,7 @@ h1{margin:0 0 4px}p{color:#9aa5b1}.b{display:block;padding:18px;border-radius:12
 <ol>
 <li>Ouvre le fichier téléchargé. Si le navigateur prévient « fichier non sécurisé », choisis <b>Conserver</b> ou <b>Télécharger quand même</b>.</li>
 <li>Android demande d’autoriser l’installation depuis cette source : accepte, puis <b>Installer</b>.</li>
-<li>Ouvre Refuge → <b>Préparer mon téléphone</b> → <b>Récupérer depuis un proche</b>, puis scanne le même QR code : l’IA et la voix se copient depuis ce téléphone, en quelques minutes.</li>
+<li>Ouvre Refuge → sur l’écran d’accueil, touche <b>Pas d’Internet ? Récupérer depuis un proche</b>, puis scanne le même QR code : l’IA, la voix, l’encyclopédie et les cartes se copient depuis ce téléphone, sans Internet.</li>
 </ol>
 ${packs ? `<p>Ou télécharge les packs à la main :</p>${packs}` : ''}
 <p>Version ${esc(cat.version)}</p></body></html>`;
@@ -103,6 +127,7 @@ export function arreterPartage() {
   PartageLocal.arreterServeur();
   PartageLocal.arreterWifi();
   actif = false;
+  FS.deleteAsync(COPIE_CARTES, { idempotent: true }).catch(() => {});
 }
 
 /** QR code standard de connexion Wi-Fi, reconnu par l'appareil photo d'Android et d'iPhone. */

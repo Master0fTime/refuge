@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Network from 'expo-network';
 import { useEffect, useState } from 'react';
+import { router } from 'expo-router';
 import { Alert, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bouton } from '@/components/ui';
@@ -36,6 +37,20 @@ export function FenetreKit({ visible, onFermer, onLance }: { visible: boolean; o
       preparer(aFaire.map((p) => p.id)).then((erreur) => erreur && Alert.alert(t('Téléchargement interrompu'), erreur));
     };
     const n = await Network.getNetworkStateAsync();
+    // Sans Internet, rien ne peut se télécharger : on propose de tout copier depuis un proche.
+    if (n.isConnected === false || n.isInternetReachable === false) {
+      Alert.alert(t('Pas d’Internet'), t('Tu peux tout récupérer depuis le téléphone d’un proche qui a Refuge, par Wi-Fi local, sans réseau.'), [
+        { text: t('Annuler') },
+        {
+          text: t('Récupérer depuis un proche'),
+          onPress: () => {
+            onFermer();
+            router.push('/recevoir');
+          },
+        },
+      ]);
+      return;
+    }
     const wifi = n.type === Network.NetworkStateType.WIFI || n.type === Network.NetworkStateType.ETHERNET;
     if (!wifi) {
       Alert.alert(t('Pas de Wi-Fi'), t('Tu vas télécharger {v1} avec tes données mobiles. Continuer ?', { v1: formatTaille(total) }), [
@@ -84,6 +99,14 @@ export function FenetreKit({ visible, onFermer, onLance }: { visible: boolean; o
         <Text style={{ color: c.muted, fontSize: 13, textAlign: 'center' }}>
           {t('Wi-Fi conseillé. Tu peux utiliser l’appli pendant le téléchargement.')}
         </Text>
+        <Pressable
+          onPress={() => {
+            onFermer();
+            router.push('/recevoir');
+          }}
+          hitSlop={8}>
+          <Text style={{ color: c.muted, fontSize: 14, textAlign: 'center', textDecorationLine: 'underline' }}>{t('Pas d’Internet ? Récupérer depuis un proche')}</Text>
+        </Pressable>
         {!perso && (
           <Pressable onPress={() => setPerso(true)} hitSlop={8}>
             <Text style={{ color: c.accent, fontSize: 15, fontWeight: '700', textAlign: 'center' }}>{t('Personnaliser')}</Text>

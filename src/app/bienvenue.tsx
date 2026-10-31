@@ -23,9 +23,9 @@ export default function Bienvenue() {
     .filter((p) => p.disponible && !prets[p.id])
     .reduce((s, p) => s + taillePack(p), 0);
 
-  const terminer = (route: '/' | '/autorisations' | '/sos') => {
+  const terminer = (route: '/' | '/autorisations' | '/sos' | '/recevoir') => {
     setAccueilVu(true);
-    if (route === '/autorisations') return router.replace(route);
+    if (route === '/autorisations' || route === '/recevoir') return router.replace(route);
     // Ouvert par-dessus l'accueil : on referme plutôt que d'empiler un second accueil.
     if (router.canGoBack()) router.back();
     if (route === '/sos' || !router.canGoBack()) router.navigate(route);
@@ -74,6 +74,16 @@ export default function Bienvenue() {
       <Text style={{ color: c.muted, fontSize: 15, textAlign: 'center' }}>
         {t('≈ {taille} · Wi-Fi conseillé · une seule fois', { taille: formatTaille(total) })}
       </Text>
+
+      <Pressable
+        onPress={() => terminer('/recevoir')}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: c.card, borderRadius: 12, padding: space.md }}>
+        <Ionicons name="phone-portrait" size={24} color={c.accent} />
+        <Text style={{ color: c.text, fontSize: 15, flex: 1 }}>
+          <Text style={{ fontWeight: '800' }}>{t('Pas d’Internet ?')}</Text> {t('Récupère tout depuis le téléphone d’un proche qui a Refuge (Wi-Fi local, sans réseau).')}
+        </Text>
+        <Ionicons name="chevron-forward" size={20} color={c.muted} />
+      </Pressable>
 
       <View style={{ flex: 1 }} />
 

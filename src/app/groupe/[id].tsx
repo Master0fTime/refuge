@@ -1,15 +1,16 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Linking, Share, View } from 'react-native';
+import { Alert, Linking, Pressable, Share, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { Bouton, Carte, Champ, Ecran, Sous, Texte, Titre } from '@/components/ui';
 import { geoUri, parseCoords } from '@/lib/geo';
 import { nouvelId } from '@/lib/id';
 import { encoder, texteGroupe } from '@/lib/partage';
 import { positionActuelle } from '@/lib/position';
+import { signalerModification } from '@/lib/maillage';
 import { KEYS, useStored } from '@/lib/store';
 import { c } from '@/lib/theme';
-import type { Groupe, PlanGroupe } from '@/lib/types';
+import { profilVide, type Groupe, type Membre, type PlanGroupe, type Profil } from '@/lib/types';
 import { t } from '@/i18n';
 
 export default function GroupeDetail() {
@@ -21,6 +22,9 @@ export default function GroupeDetail() {
   const [notePt, setNotePt] = useState('');
   const [coords, setCoords] = useState('');
   const [qr, setQr] = useState(false);
+  const [profil, setProfil] = useStored<Profil>(KEYS.profil, profilVide(''));
+  const [prenom, setPrenom] = useState('');
+  const [edition, setEdition] = useState<string | null>(null);
 
   if (!g) {
     return (
@@ -30,8 +34,18 @@ export default function GroupeDetail() {
     );
   }
 
-  const maj = (patch: Partial<Groupe>) =>
+  const maj = (patch: Partial<Groupe>) => {
     setGroupes(groupes.map((x) => (x.id === g.id ? { ...x, ...patch, majLe: Date.now() } : x)));
+    signalerModification(g.id); // les autres téléphones du groupe reçoivent la mise à jour par Bluetooth
+  };
+  // Surnom local : ne change pas `majLe` et ne part pas chez les autres.
+  const renommerMembre = (m: Membre, surnom: string) =>
+    setGroupes(groupes.map((x) => (x.id === g.id ? { ...x, membres: x.membres.map((y) => (y.id === m.id ? { ...y, surnom: surnom || undefined } : y)) } : x)));
+  const enregistrerPrenom = () => {
+    if (!prenom.trim()) return;
+    setProfil({ ...profil, prenom: prenom.trim() });
+    signalerModification(g.id);
+  };
   const majPlan = (k: keyof PlanGroupe) => (v: string) => maj({ plan: { ...g.plan, [k]: v } });
 
   const ici = async () => {
@@ -76,6 +90,13 @@ export default function GroupeDetail() {
   return (
     <Ecran>
       <Stack.Screen options={{ title: g.nom }} />
+      {!profil.prenom.trim() && (
+        <Carte couleur={c.accent}>
+          <Texte>{t('Ton prénom, pour que ton groupe sache qui écrit :')}</Texte>
+          <Champ label={t('Prénom')} value={prenom} onChangeText={setPrenom} onSubmitEditing={enregistrerPrenom} />
+          <Bouton label={t('Enregistrer')} icone="checkmark" onPress={enregistrerPrenom} />
+        </Carte>
+      )}
 
       <Bouton label={t('Discuter sans réseau (Bluetooth)')} icone="bluetooth" grand onPress={() => router.push(`/discussion/${g.id}`)} />
 
@@ -139,12 +160,29 @@ export default function GroupeDetail() {
       <Bouton label={t("Conseils pour bien faire un plan")} icone="book" discret onPress={() => router.push('/fiche/comms-plan')} />
 
       <Sous>{t("Membres (")}{g.membres.length})</Sous>
-      {g.membres.map((m) => (
-        <Texte key={m.id}>
-          • {m.nom}
-          {m.telephone ? ` · ${m.telephone}` : ''}
-        </Texte>
-      ))}
+      <Texte muted>{t('Touche un membre pour lui donner un nom (visible seulement sur ton téléphone). La liste se met à jour toute seule quand vos téléphones se croisent en Bluetooth.')}</Texte>
+      {g.membres.map((m) =>
+        edition === m.id ? (
+          <Champ
+            key={m.id}
+            label={t('Nom affiché pour ce membre')}
+            defaultValue={m.surnom ?? (m.nom === 'Sans nom' ? '' : m.nom)}
+            autoFocus
+            onEndEditing={(e) => {
+              renommerMembre(m, e.nativeEvent.text.trim());
+              setEdition(null);
+            }}
+          />
+        ) : (
+          <Pressable key={m.id} disabled={m.id === profil.id} onPress={() => setEdition(m.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6 }}>
+            <Text style={{ color: c.text, fontSize: 17, flex: 1 }}>
+              • {m.id === profil.id ? t('{nom} (toi)', { nom: profil.prenom.trim() || t('Moi') }) : m.surnom || m.nom}
+              {m.telephone ? <Text style={{ color: c.muted }}>{` · ${m.telephone}`}</Text> : null}
+            </Text>
+            {m.id !== profil.id && <Text style={{ color: c.accent, fontWeight: '700' }}>{t('Renommer')}</Text>}
+          </Pressable>
+        ),
+      )}
 
       <Bouton label={t("Supprimer le groupe")} icone="trash" couleur={c.danger} onPress={supprimerGroupe} />
     </Ecran>

@@ -51,7 +51,7 @@ export default function Partager() {
         <Titre>{t("Partager Refuge sans Internet")}</Titre>
         <Texte muted>{t("Tes proches n’ont pas l’appli et il n’y a plus de réseau ? Ton téléphone peut la leur transmettre directement.")}</Texte>
         <Carte couleur={c.ok}>
-          <Texte>{t("Ce qui est partagé : l’appli et les packs installés (IA, voix).")}</Texte>
+          <Texte>{t("Ce qui est partagé : l’appli et tout ce que tu as installé (IA, voix, encyclopédie, photo, cartes). Ton proche n’a besoin ni d’Internet ni de réseau.")}</Texte>
           <Texte>{t("Ce qui n’est JAMAIS partagé : ta carte de vie, tes groupes, tes contacts, tes points de ralliement.")}</Texte>
         </Carte>
         <Bouton label={enCours ? t("Démarrage…") : t("Démarrer le partage")} icone="wifi" grand onPress={() => !enCours && demarrer()} />
@@ -92,7 +92,7 @@ export default function Partager() {
         <>
           <Titre>{t("2. Télécharger Refuge")}</Titre>
           <Texte muted>
-            {t("Ton ami vise ce code avec l’appareil photo : une page s’ouvre pour télécharger l’appli. Une fois Refuge installé, il scanne CE MÊME code depuis « Préparer mon téléphone → Récupérer depuis un proche » pour copier l’IA et la voix.")}</Texte>
+            {t("Ton ami vise ce code avec l’appareil photo : une page s’ouvre pour télécharger l’appli. Une fois Refuge installé et ouvert, il touche « Pas d’Internet ? Récupérer depuis un proche » et scanne CE MÊME code : tout le reste se copie (IA, voix, encyclopédie, photo, cartes).")}</Texte>
           <View style={{ alignSelf: 'center', backgroundColor: '#fff', padding: 16, borderRadius: 16 }}>
             <QRCode value={session.url} size={250} />
           </View>

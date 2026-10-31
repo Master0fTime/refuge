@@ -39,7 +39,8 @@ export type PlanGroupe = {
   motCode: string;
 };
 
-export type Membre = { id: string; nom: string; telephone?: string };
+/** `surnom` : nom donné localement, jamais partagé ; il remplace `nom` à l'affichage. */
+export type Membre = { id: string; nom: string; telephone?: string; surnom?: string };
 
 export type Groupe = {
   id: string;

@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Camera, Map, Marker, NativeUserLocation, type CameraRef } from '@maplibre/maplibre-react-native';
-import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Bouton } from '@/components/ui';
 import { cartesPretes, centrePays, STYLE_CARTE } from '@/lib/cartes';
+import { geoUri } from '@/lib/geo';
 import { nouvelId } from '@/lib/id';
 import { usePays } from '@/lib/pays';
 import { positionActuelle } from '@/lib/position';
@@ -14,9 +15,15 @@ import type { Groupe } from '@/lib/types';
 import { t } from '@/i18n';
 
 type Repere = { id: string; nom: string; lat: number; lon: number };
-type Point = Repere & { type: 'ralliement' | 'repere'; groupe?: string };
+type Point = Repere & { type: 'ralliement' | 'repere' | 'recu'; groupe?: string };
 
 export default function Carte() {
+  // Ouverte depuis une position reçue dans la discussion : on montre ce point.
+  const params = useLocalSearchParams<{ lat?: string; lon?: string; nom?: string }>();
+  const recu: Point | null =
+    params.lat && params.lon && !isNaN(Number(params.lat))
+      ? { id: 'recu', nom: params.nom ?? t('Position reçue'), lat: Number(params.lat), lon: Number(params.lon), type: 'recu' }
+      : null;
   const [pays] = usePays();
   const [groupes] = useStored<Groupe[]>(KEYS.groupes, []);
   const [reperes, setReperes] = useStored<Repere[]>(KEYS.reperes, []);
@@ -24,7 +31,15 @@ export default function Carte() {
   const [moi, setMoi] = useState<[number, number] | null>(null);
   const [selection, setSelection] = useState<Point | null>(null);
   const camera = useRef<CameraRef>(null);
-  const dejaCentre = useRef(false);
+  const dejaCentre = useRef(!!recu);
+
+  useEffect(() => {
+    if (!recu) return;
+    setSelection(recu);
+    const minuteur = setTimeout(() => camera.current?.flyTo({ center: [recu.lon, recu.lat], zoom: 15, duration: 800 }), 400);
+    return () => clearTimeout(minuteur);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.lat, params.lon]);
 
   useFocusEffect(
     useCallback(() => {
@@ -46,6 +61,7 @@ export default function Carte() {
   const points: Point[] = [
     ...groupes.flatMap((g) => g.points.map((p) => ({ id: p.id, nom: `${p.ordre === 1 ? '★ ' : ''}${p.nom}`, lat: p.lat, lon: p.lon, type: 'ralliement' as const, groupe: g.nom }))),
     ...reperes.map((r) => ({ ...r, type: 'repere' as const })),
+    ...(recu ? [recu] : []),
   ];
 
   const ajouterRepere = (lngLat: [number, number]) => {
@@ -73,8 +89,8 @@ export default function Carte() {
         <NativeUserLocation />
         {points.map((p) => (
           <Marker key={p.id} id={p.id} lngLat={[p.lon, p.lat]} onPress={() => setSelection(p)}>
-            <View style={[st.pastille, { backgroundColor: p.type === 'ralliement' ? c.ok : c.accent }]}>
-              <Ionicons name={p.type === 'ralliement' ? 'flag' : 'location'} size={16} color="#000" />
+            <View style={[st.pastille, { backgroundColor: p.type === 'ralliement' ? c.ok : p.type === 'recu' ? c.info : c.accent }]}>
+              <Ionicons name={p.type === 'ralliement' ? 'flag' : p.type === 'recu' ? 'person' : 'location'} size={16} color="#000" />
             </View>
           </Marker>
         ))}
@@ -104,7 +120,12 @@ export default function Carte() {
             <Text style={st.nom}>{selection.nom}</Text>
           )}
           <Text style={st.sous}>
-            {selection.type === 'ralliement' ? t("Point de ralliement · {groupe}", { groupe: selection.groupe }) : t("Mon repère")} · {selection.lat.toFixed(5)}, {selection.lon.toFixed(5)}
+            {selection.type === 'ralliement'
+              ? t("Point de ralliement · {groupe}", { groupe: selection.groupe })
+              : selection.type === 'recu'
+                ? t('Position reçue')
+                : t("Mon repère")}{' '}
+            · {selection.lat.toFixed(5)}, {selection.lon.toFixed(5)}
           </Text>
           <View style={{ flexDirection: 'row', gap: space.sm }}>
             <View style={{ flex: 2 }}>
@@ -117,6 +138,11 @@ export default function Carte() {
             {selection.type === 'repere' && (
               <View style={{ flex: 1 }}>
                 <Bouton label={t("Supprimer")} discret onPress={supprimer} />
+              </View>
+            )}
+            {selection.type !== 'repere' && (
+              <View style={{ flex: 1 }}>
+                <Bouton label={t('Autre appli')} icone="open" discret onPress={() => Linking.openURL(geoUri(selection.lat, selection.lon, selection.nom)).catch(() => {})} />
               </View>
             )}
           </View>
