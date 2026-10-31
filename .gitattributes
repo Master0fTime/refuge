@@ -1,0 +1,2 @@
+# Le module Bluetooth garde des fins de ligne LF : elles entrent dans l'empreinte native (runtimeVersion).
+modules/maillage/** text eol=lf
