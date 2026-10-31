@@ -15,6 +15,8 @@ import { t } from '@/i18n';
 //    Les APK sont publiés sur GitHub Releases (liens permanents), sous le nom refuge-<versionCode>.apk.
 
 const RELEASES = 'https://api.github.com/repos/Master0fTime/refuge/releases/latest';
+// Versions de test : les pré-versions GitHub aussi (option dans « Mises à jour »), la plus récente gagne.
+const TOUTES_RELEASES = 'https://api.github.com/repos/Master0fTime/refuge/releases?per_page=15';
 
 export function versionInstallee() {
   return {
@@ -42,21 +44,26 @@ export async function chercherApk() {
   const arret = new AbortController();
   const minuteur = setTimeout(() => arret.abort(), 8000); // pas d'attente infinie sur un réseau saturé
   try {
-    const r = await fetch(RELEASES, { headers: { Accept: 'application/vnd.github+json' }, signal: arret.signal });
+    const test = lire<boolean>(KEYS.versionsTest, false);
+    const r = await fetch(test ? TOUTES_RELEASES : RELEASES, { headers: { Accept: 'application/vnd.github+json' }, signal: arret.signal });
     if (!r.ok) return;
-    const rel = await r.json();
-    for (const a of rel.assets ?? []) {
-      const m = /^refuge-(\d+)\.apk$/.exec(a.name);
-      if (!m) continue;
-      write<VersionApk>(KEYS.apkGithub, {
-        versionCode: Number(m[1]),
-        version: String(rel.tag_name).replace(/^v/, ''),
-        url: a.browser_download_url,
-        octets: a.size,
-        date: rel.published_at,
-      });
-      return;
+    const json = await r.json();
+    const releases = test ? (json as unknown[]) : [json];
+    let meilleur: VersionApk | null = null;
+    for (const rel of releases as { tag_name: string; published_at: string; assets?: { name: string; browser_download_url: string; size: number }[] }[]) {
+      for (const a of rel.assets ?? []) {
+        const m = /^refuge-(\d+)\.apk$/.exec(a.name);
+        if (!m || (meilleur && Number(m[1]) <= meilleur.versionCode)) continue;
+        meilleur = {
+          versionCode: Number(m[1]),
+          version: String(rel.tag_name).replace(/^v/, ''),
+          url: a.browser_download_url,
+          octets: a.size,
+          date: rel.published_at,
+        };
+      }
     }
+    if (meilleur) write<VersionApk>(KEYS.apkGithub, meilleur);
   } catch {
     // Hors ligne ou GitHub injoignable : on réessaiera à la prochaine ouverture.
   } finally {
