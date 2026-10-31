@@ -845,4 +845,11 @@ export const UI_DE: Record<string, string> = {
   'Pour tester les nouveautés avant tout le monde. Elles peuvent contenir des bugs.': 'Um Neuheiten vor allen anderen zu testen. Sie können Fehler enthalten.',
   'Ne plus recevoir les versions de test': 'Keine Testversionen mehr erhalten',
   'Recevoir les versions de test': 'Testversionen erhalten',
+  'Masquer les détails techniques': 'Technische Details ausblenden',
+  'Détails techniques (si les messages ne passent pas)': 'Technische Details (falls Nachrichten nicht ankommen)',
+  'Rien pour l’instant.': 'Noch nichts.',
+  'Ajouter un membre (scanner son QR)': 'Mitglied hinzufügen (QR-Code scannen)',
+  'Son QR : chez lui, onglet Groupe → « Mon QR ».': 'Sein QR-Code: bei ihm, Tab Gruppe → «Mein QR».',
+  'Membre ajouté': 'Mitglied hinzugefügt',
+  '{nom} fait maintenant partie de « {groupe} ».': '{nom} gehört jetzt zu «{groupe}».',
 };
