@@ -4,7 +4,8 @@ import { Alert, View } from 'react-native';
 import { Bouton, Carte, Ecran, Sous, Texte, Titre } from '@/components/ui';
 import { NOUVEAUTES } from '@/data/version';
 import { formatTaille } from '@/lib/ia/modeles';
-import { useApkDisponible, appliquerContenu, installerApk, verifierContenu, versionInstallee, type EtatContenu } from '@/lib/mises-a-jour';
+import { chercherApk, useApkDisponible, appliquerContenu, installerApk, verifierContenu, versionInstallee, type EtatContenu } from '@/lib/mises-a-jour';
+import { KEYS, useStored } from '@/lib/store';
 import { c } from '@/lib/theme';
 import { t } from '@/i18n';
 
@@ -17,6 +18,12 @@ export default function MisesAJour() {
   const { isUpdatePending, isUpdateAvailable, isDownloading, downloadProgress, availableUpdate } = useUpdates();
   const [etat, setEtat] = useState<EtatContenu | 'verif' | null>(null);
   const [progresApk, setProgresApk] = useState<number | null>(null);
+  const [test, setTest] = useStored<boolean>(KEYS.versionsTest, false);
+
+  const basculerTest = () => {
+    setTest(!test);
+    chercherApk();
+  };
 
   const verifier = async () => {
     setEtat('verif');
@@ -96,6 +103,16 @@ export default function MisesAJour() {
         )}
       </Carte>
       <Texte muted>{t("Refuge vérifie aussi tout seul à chaque ouverture, quand Internet est disponible, et te prévient sur l’accueil.")}</Texte>
+
+      <Sous>{t('Versions de test')}</Sous>
+      <Carte couleur={test ? c.accent : undefined}>
+        <Texte>
+          {test
+            ? t('Activées : Refuge te propose aussi les versions complètes en cours d’essai, dès leur publication.')
+            : t('Pour tester les nouveautés avant tout le monde. Elles peuvent contenir des bugs.')}
+        </Texte>
+        <Bouton label={test ? t('Ne plus recevoir les versions de test') : t('Recevoir les versions de test')} icone="flask" discret={test} onPress={basculerTest} />
+      </Carte>
 
       <Sous>{t("Nouveautés")}</Sous>
       {NOUVEAUTES.map((n) => (

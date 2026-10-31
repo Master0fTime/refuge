@@ -840,4 +840,9 @@ export const UI_DE: Record<string, string> = {
   'Voix {n}': 'Stimme {n}',
   'Grave': 'Tief',
   'Aiguë': 'Hoch',
+  'Versions de test': 'Testversionen',
+  'Activées : Refuge te propose aussi les versions complètes en cours d’essai, dès leur publication.': 'Aktiviert: Refuge bietet dir auch Vollversionen in der Testphase an, sobald sie erscheinen.',
+  'Pour tester les nouveautés avant tout le monde. Elles peuvent contenir des bugs.': 'Um Neuheiten vor allen anderen zu testen. Sie können Fehler enthalten.',
+  'Ne plus recevoir les versions de test': 'Keine Testversionen mehr erhalten',
+  'Recevoir les versions de test': 'Testversionen erhalten',
 };

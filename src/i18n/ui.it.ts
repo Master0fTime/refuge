@@ -840,4 +840,9 @@ export const UI_IT: Record<string, string> = {
   'Voix {n}': 'Voce {n}',
   'Grave': 'Grave',
   'Aiguë': 'Acuta',
+  'Versions de test': 'Versioni di prova',
+  'Activées : Refuge te propose aussi les versions complètes en cours d’essai, dès leur publication.': 'Attive: Refuge ti propone anche le versioni complete in prova, appena pubblicate.',
+  'Pour tester les nouveautés avant tout le monde. Elles peuvent contenir des bugs.': 'Per provare le novità prima di tutti. Possono contenere errori.',
+  'Ne plus recevoir les versions de test': 'Non ricevere più le versioni di prova',
+  'Recevoir les versions de test': 'Ricevi le versioni di prova',
 };

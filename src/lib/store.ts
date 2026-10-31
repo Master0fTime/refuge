@@ -49,6 +49,7 @@ export const KEYS = {
   reperes: 'reperes',
   langue: 'langue',
   apkGithub: 'apkGithub',
+  versionsTest: 'versionsTest',
   accueilVu: 'accueilVu',
   messages: 'messages',
 } as const;
