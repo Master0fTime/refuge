@@ -1,4 +1,5 @@
 import * as Crypto from 'expo-crypto';
+import * as Notifications from 'expo-notifications';
 import { useSyncExternalStore } from 'react';
 import { PermissionsAndroid, Platform } from 'react-native';
 import { Maillage } from '../../modules/maillage';
@@ -24,8 +25,18 @@ const DUREE_MS = 30 * 60_000; // un paquet est retransmis aux téléphones crois
 const MAX_PAR_GROUPE = 200;
 const LONGUEUR_MAX = 300;
 
-type Etat = { actif: boolean; voisins: number; erreur: string | null };
-let etat: Etat = { actif: false, voisins: 0, erreur: null };
+type Etat = { actif: boolean; voisins: number; erreur: string | null; journal: string[] };
+let etat: Etat = { actif: false, voisins: 0, erreur: null, journal: [] };
+const noter = (ligne: string) => {
+  const heure = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  maj({ journal: [...etat.journal, `${heure} ${ligne}`].slice(-40) });
+};
+
+/** Discussion affichée à l'écran : pas de notification pour ses messages. */
+let discussionOuverte: string | null = null;
+export const ouvrirDiscussion = (id: string | null) => {
+  discussionOuverte = id;
+};
 const abonnes = new Set<() => void>();
 const maj = (patch: Partial<Etat>) => {
   etat = { ...etat, ...patch };
@@ -85,7 +96,7 @@ let ecoute = false;
 // Le paquet ne contient que de l'ASCII (hexadécimal et base64) : atob/btoa suffisent.
 const b64 = { depuis: (s: string) => atob(s), vers: (s: string) => btoa(s) };
 
-async function recevoir(donnees: string) {
+async function recevoir(donnees: string, de: string) {
   let p: Paquet;
   try {
     p = JSON.parse(b64.depuis(donnees));
@@ -97,7 +108,8 @@ async function recevoir(donnees: string) {
   if (vus.size > 2000) vus.clear();
 
   // Relayer d'abord : même un téléphone qui n'est pas du groupe aide le message à avancer.
-  if (p.r > 0) Maillage?.diffuser(p.i, b64.vers(JSON.stringify({ ...p, r: p.r - 1 })), DUREE_MS);
+  // (pas renvoyé au téléphone dont il vient)
+  if (p.r > 0) Maillage?.diffuser(p.i, b64.vers(JSON.stringify({ ...p, r: p.r - 1 })), DUREE_MS, de);
 
   const moi = lire<Profil>(KEYS.profil, profilVide('')).id;
   for (const g of lire<Groupe[]>(KEYS.groupes, [])) {
@@ -108,13 +120,29 @@ async function recevoir(donnees: string) {
     try {
       const m = JSON.parse(clair) as Omit<MessageGroupe, 'id'>;
       if (m.de === moi) return;
-      if (m.k === 'groupe') return appliquerGroupe(g.id, m);
+      if (m.k === 'groupe') {
+        noter(`Groupe « ${g.nom} » mis à jour par ${m.nom}`);
+        return appliquerGroupe(g.id, m);
+      }
+      noter(`Message de ${m.nom} (${g.nom})`);
+      const nouveau = !(messages()[g.id] ?? []).some((x) => x.id === p.i);
       ranger(g.id, { ...m, id: p.i, x: m.x?.slice(0, LONGUEUR_MAX) });
+      if (nouveau && discussionOuverte !== g.id) notifier(g, m);
     } catch {
       // Contenu illisible : ignoré.
     }
     return;
   }
+}
+
+/** Notification locale (aucun serveur) : quelqu'un du groupe a écrit. */
+function notifier(g: Groupe, m: Omit<MessageGroupe, 'id'>) {
+  const corps =
+    m.k === 'aide' ? t('🆘 J’ai besoin d’aide') : m.k === 'ok' ? t('✅ Je vais bien') : m.k === 'pos' ? t('📍 Ma position') : (m.x ?? '');
+  Notifications.scheduleNotificationAsync({
+    content: { title: `${m.nom} · ${g.nom}`, body: corps, data: { url: `/discussion/${g.id}` }, priority: m.k === 'aide' ? 'max' : 'high' },
+    trigger: null,
+  }).catch(() => {});
 }
 
 /**
@@ -199,21 +227,39 @@ export async function demarrer(): Promise<string | null> {
   if (!ecoute) {
     ecoute = true;
     Maillage.addListener('recu', (e) => {
-      recevoir(e.donnees);
+      recevoir(e.donnees, e.de);
     });
     Maillage.addListener('voisins', (e) => maj({ voisins: e.nombre }));
-    Maillage.addListener('erreur', (e) => maj({ erreur: e.message }));
+    Maillage.addListener('erreur', (e) => {
+      maj({ erreur: e.message });
+      noter(e.message);
+    });
+    Maillage.addListener('journal', (e) => noter(e.ligne));
+    // Les notifications s'affichent aussi quand l'appli est ouverte (sur un autre écran).
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false }),
+    });
+    Notifications.requestPermissionsAsync().catch(() => {});
   }
   maj({ erreur: null });
   Maillage.demarrer();
   maj({ actif: true });
+  write(KEYS.maillageAuto, true); // relancé tout seul aux prochains démarrages de l'appli
   annoncerGroupes(true).catch(() => {});
   return null;
 }
 
 export function arreter() {
   Maillage?.arreter();
+  write(KEYS.maillageAuto, false);
   maj({ actif: false, voisins: 0 });
+}
+
+/** Au lancement de l'appli : rallume la messagerie si elle était allumée et qu'on a un groupe. */
+export function relancerSiBesoin() {
+  if (!Maillage || !lire<boolean>(KEYS.maillageAuto, false) || !lire<Groupe[]>(KEYS.groupes, []).length) return;
+  if (Maillage.etatBluetooth() !== 'allume') return;
+  demarrer().catch(() => {});
 }
 
 // ---------- Envoi ----------
@@ -235,7 +281,7 @@ async function emettre(g: Groupe, contenu: Pick<MessageGroupe, 'k' | 'x' | 'la' 
   const paquet: Paquet = { v: 1, i: id, r: RELAIS, g: tag, c: Maillage.chiffrer(cle, JSON.stringify(m)) };
   vus.add(id);
   if (visible) ranger(g.id, { ...m, id, moi: true });
-  Maillage.diffuser(id, b64.vers(JSON.stringify(paquet)), DUREE_MS);
+  Maillage.diffuser(id, b64.vers(JSON.stringify(paquet)), DUREE_MS, null);
 }
 
 /** « Je vais bien » / « J'ai besoin d'aide » à tous ses groupes, par Bluetooth (en plus du SMS). */

@@ -840,4 +840,11 @@ export const UI_IT: Record<string, string> = {
   'Voix {n}': 'Voce {n}',
   'Grave': 'Grave',
   'Aiguë': 'Acuta',
+  'Masquer les détails techniques': 'Nascondi i dettagli tecnici',
+  'Détails techniques (si les messages ne passent pas)': 'Dettagli tecnici (se i messaggi non passano)',
+  'Rien pour l’instant.': 'Ancora niente.',
+  'Ajouter un membre (scanner son QR)': 'Aggiungi un membro (scansiona il suo QR)',
+  'Son QR : chez lui, onglet Groupe → « Mon QR ».': 'Il suo QR: sul suo telefono, scheda Gruppo → «Il mio QR».',
+  'Membre ajouté': 'Membro aggiunto',
+  '{nom} fait maintenant partie de « {groupe} ».': '{nom} ora fa parte di «{groupe}».',
 };

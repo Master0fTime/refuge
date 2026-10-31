@@ -160,6 +160,8 @@ export default function GroupeDetail() {
       <Bouton label={t("Conseils pour bien faire un plan")} icone="book" discret onPress={() => router.push('/fiche/comms-plan')} />
 
       <Sous>{t("Membres (")}{g.membres.length})</Sous>
+      <Bouton label={t('Ajouter un membre (scanner son QR)')} icone="person-add" discret onPress={() => router.push({ pathname: '/scanner', params: { gid: g.id } })} />
+      <Texte muted>{t('Son QR : chez lui, onglet Groupe → « Mon QR ».')}</Texte>
       <Texte muted>{t('Touche un membre pour lui donner un nom (visible seulement sur ton téléphone). La liste se met à jour toute seule quand vos téléphones se croisent en Bluetooth.')}</Texte>
       {g.membres.map((m) =>
         edition === m.id ? (

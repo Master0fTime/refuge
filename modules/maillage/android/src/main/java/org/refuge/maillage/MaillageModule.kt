@@ -24,7 +24,7 @@ class MaillageModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("Maillage")
 
-    Events("recu", "voisins", "erreur")
+    Events("recu", "voisins", "erreur", "journal")
 
     /** Le téléphone a-t-il le Bluetooth Low Energy, et est-il allumé ? */
     Function("etatBluetooth") {
@@ -38,19 +38,27 @@ class MaillageModule : Module() {
           recu = { octets, de -> sendEvent("recu", mapOf("donnees" to Base64.encodeToString(octets, Base64.NO_WRAP), "de" to de)) },
           voisins = { n -> sendEvent("voisins", mapOf("nombre" to n)) },
           erreur = { message -> sendEvent("erreur", mapOf("message" to message)) },
+          journal = { ligne -> sendEvent("journal", mapOf("ligne" to ligne)) },
         )
       }
       radio!!.demarrer()
+      // Écran éteint ou appli en arrière-plan : le service garde la messagerie en vie.
+      try {
+        MaillageService.lancer(context.applicationContext)
+      } catch (e: Exception) {
+        sendEvent("journal", mapOf("ligne" to "Service d'arrière-plan refusé : garde l'appli ouverte"))
+      }
     }
 
     Function("arreter") {
       radio?.arreter()
       radio = null
+      MaillageService.arreter(context.applicationContext)
     }
 
-    /** Ajoute un paquet à transmettre à tous les téléphones croisés pendant `dureeMs`. */
-    Function("diffuser") { id: String, donnees: String, dureeMs: Double ->
-      radio?.diffuser(id, Base64.decode(donnees, Base64.NO_WRAP), dureeMs.toLong())
+    /** Ajoute un paquet à transmettre à tous les téléphones croisés pendant `dureeMs`. `sauf` : d'où il vient. */
+    Function("diffuser") { id: String, donnees: String, dureeMs: Double, sauf: String? ->
+      radio?.diffuser(id, Base64.decode(donnees, Base64.NO_WRAP), dureeMs.toLong(), sauf)
     }
 
     /** AES-256-GCM. `cleHex` : 64 caractères hexadécimaux. Renvoie base64(iv + chiffré). */
@@ -76,6 +84,10 @@ class MaillageModule : Module() {
     OnDestroy {
       radio?.arreter()
       radio = null
+      try {
+        MaillageService.arreter(context.applicationContext)
+      } catch (_: Exception) {
+      }
     }
   }
 

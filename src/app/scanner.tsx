@@ -1,14 +1,17 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useRef } from 'react';
 import { Alert, View } from 'react-native';
 import { Bouton, Ecran, Texte } from '@/components/ui';
+import { signalerModification } from '@/lib/maillage';
 import { ajouterContact, decoder, fusionnerGroupe } from '@/lib/partage';
 import { KEYS, useStored } from '@/lib/store';
 import { profilVide, type Contact, type Groupe, type Profil } from '@/lib/types';
 import { t } from '@/i18n';
 
 export default function Scanner() {
+  // Ouvert depuis un groupe (« Ajouter un membre ») : le contact scanné rejoint ce groupe.
+  const { gid } = useLocalSearchParams<{ gid?: string }>();
   const [permission, demander] = useCameraPermissions();
   const [profil] = useStored<Profil>(KEYS.profil, profilVide(''));
   const [contacts, setContacts] = useStored<Contact[]>(KEYS.contacts, []);
@@ -39,6 +42,16 @@ export default function Scanner() {
         return;
       }
       setContacts(ajouterContact(contacts, p));
+      const groupe = gid ? groupes.find((g) => g.id === gid) : undefined;
+      if (groupe) {
+        const membres = groupe.membres.some((m) => m.id === p.id)
+          ? groupe.membres.map((m) => (m.id === p.id ? { ...m, nom: p.nom, telephone: p.tel ?? m.telephone } : m))
+          : [...groupe.membres, { id: p.id, nom: p.nom, telephone: p.tel }];
+        setGroupes(groupes.map((g) => (g.id === gid ? { ...g, membres, majLe: Date.now() } : g)));
+        signalerModification(groupe.id);
+        Alert.alert(t('Membre ajouté'), t('{nom} fait maintenant partie de « {groupe} ».', { nom: p.nom, groupe: groupe.nom }), [{ text: 'OK', onPress: () => router.back() }]);
+        return;
+      }
       Alert.alert(t("Contact ajouté"), t("{nom} est dans tes contacts.", { nom: p.nom }), [{ text: 'OK', onPress: () => router.back() }]);
     } else {
       // On s'ajoute aux membres du groupe reçu, pour qu'il apparaisse dans la liste quand on le partagera à notre tour.

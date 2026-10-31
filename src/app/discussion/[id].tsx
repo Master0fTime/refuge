@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Alert, KeyboardAvoidingView, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bouton, Texte } from '@/components/ui';
-import { demarrer, envoyer, signalerModification, useMaillage, type MessageGroupe } from '@/lib/maillage';
+import { demarrer, envoyer, ouvrirDiscussion, signalerModification, useMaillage, type MessageGroupe } from '@/lib/maillage';
 import { positionActuelle } from '@/lib/position';
 import { KEYS, useStored } from '@/lib/store';
 import { c, space } from '@/lib/theme';
@@ -18,7 +18,8 @@ export default function Discussion() {
   const [boite] = useStored<Record<string, MessageGroupe[]>>(KEYS.messages, {});
   const g = groupes.find((x) => x.id === id);
   const liste = (g && boite[g.id]) || [];
-  const { actif, voisins, erreur } = useMaillage();
+  const { actif, voisins, erreur, journal } = useMaillage();
+  const [details, setDetails] = useState(false);
   const [texte, setTexte] = useState('');
   const [probleme, setProbleme] = useState<string | null>(null);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
@@ -31,6 +32,14 @@ export default function Discussion() {
   useEffect(() => {
     allumer();
   }, []);
+
+  // Pas de notification pour la discussion qu'on a sous les yeux.
+  useFocusEffect(
+    useCallback(() => {
+      ouvrirDiscussion(id);
+      return () => ouvrirDiscussion(null);
+    }, [id]),
+  );
 
   if (!g) return <Texte>{t('Groupe introuvable.')}</Texte>;
 
@@ -124,6 +133,24 @@ export default function Discussion() {
         {liste.map((m) => (
           <Bulle key={m.id} m={m} nom={nomDe(m)} />
         ))}
+        <Pressable onPress={() => setDetails(!details)} hitSlop={8} style={{ alignSelf: 'center', paddingTop: space.lg }}>
+          <Text style={{ color: c.muted, fontSize: 13, textDecorationLine: 'underline' }}>
+            {details ? t('Masquer les détails techniques') : t('Détails techniques (si les messages ne passent pas)')}
+          </Text>
+        </Pressable>
+        {details && (
+          <View style={{ backgroundColor: c.card, borderRadius: 10, padding: space.sm }}>
+            {journal.length ? (
+              journal.map((l, i) => (
+                <Text key={i} style={{ color: c.muted, fontSize: 12, fontFamily: 'monospace' }}>
+                  {l}
+                </Text>
+              ))
+            ) : (
+              <Text style={{ color: c.muted, fontSize: 12 }}>{t('Rien pour l’instant.')}</Text>
+            )}
+          </View>
+        )}
       </ScrollView>
 
       <View style={{ padding: space.md, paddingBottom: space.md + insets.bottom, gap: space.sm, backgroundColor: c.card }}>

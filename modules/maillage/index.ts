@@ -5,13 +5,14 @@ type Evenements = {
   recu: (e: { donnees: string; de: string }) => void;
   voisins: (e: { nombre: number }) => void;
   erreur: (e: { message: string }) => void;
+  journal: (e: { ligne: string }) => void;
 };
 
 declare class MaillageNatif extends NativeModule<Evenements> {
   etatBluetooth(): 'absent' | 'eteint' | 'allume';
   demarrer(): void;
   arreter(): void;
-  diffuser(id: string, donnees: string, dureeMs: number): void;
+  diffuser(id: string, donnees: string, dureeMs: number, sauf: string | null): void;
   chiffrer(cleHex: string, texte: string): string;
   dechiffrer(cleHex: string, b64: string): string | null;
 }

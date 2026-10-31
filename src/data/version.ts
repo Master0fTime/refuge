@@ -19,6 +19,17 @@ export const DERNIER_APK: VersionApk | null = null;
 /** Notes de version, la plus récente en premier. Affichées dans « Mises à jour ». */
 export const NOUVEAUTES: { version: string; date: string; points: string[] }[] = [
   {
+    version: '0.9.2',
+    date: '2026-10-31',
+    points: [
+      'Nouvelle version complète : messagerie Bluetooth plus fiable (les deux téléphones ne se gênent plus en envoyant en même temps).',
+      'Notification quand quelqu’un du groupe écrit, même écran éteint ; touche-la pour ouvrir la discussion.',
+      'La messagerie reste allumée en arrière-plan et reprend toute seule au démarrage.',
+      'Ajouter un membre au groupe en scannant son QR code, sans attendre le Bluetooth.',
+      'Détails techniques dans la discussion, pour comprendre si un message ne passe pas.',
+    ],
+  },
+  {
     version: '0.9.1',
     date: '2026-10-31',
     points: [

@@ -51,4 +51,5 @@ export const KEYS = {
   apkGithub: 'apkGithub',
   accueilVu: 'accueilVu',
   messages: 'messages',
+  maillageAuto: 'maillageAuto',
 } as const;

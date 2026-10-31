@@ -1,9 +1,12 @@
-import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import * as Notifications from 'expo-notifications';
+import { DarkTheme, router, Stack, ThemeProvider, type Href } from 'expo-router';
+import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import Storage from 'expo-sqlite/kv-store';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { migrerAncienDossier } from '@/lib/ia/modeles';
+import { relancerSiBesoin } from '@/lib/maillage';
 import { nouvelId } from '@/lib/id';
 import { KEYS, write } from '@/lib/store';
 import { c } from '@/lib/theme';
@@ -21,6 +24,18 @@ const theme = {
 
 export default function RootLayout() {
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    // La messagerie Bluetooth reprend toute seule si elle était allumée.
+    relancerSiBesoin();
+    // Toucher la notification d'un message ouvre la discussion.
+    const sub = Notifications.addNotificationResponseReceivedListener((r) => {
+      const url = r.notification.request.content.data?.url;
+      if (typeof url === 'string') router.push(url as Href);
+    });
+    return () => sub.remove();
+  }, []);
+
   return (
     <ThemeProvider value={theme}>
       <StatusBar style="light" />
